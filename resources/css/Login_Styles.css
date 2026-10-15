@@ -1,0 +1,230 @@
+/* LOGIN STYLES */
+/* Variables for login page */
+:root {
+  --verde:  #0aafa0;
+  --verde-d: #057a6f;
+  --fondo: #f5fcf8;
+  --panel: #ffffff;
+  --panel-border: rgba(10,175,160,0.15);
+  --panel-shadow: 0 24px 60px rgba(10,175,160,0.08);
+  --input-bg: #f6fbf8;
+  --input-border: rgba(10,175,160,0.18);
+  --texto: #1a2e2c;
+  --muted: #5a8a84;
+  --danger: #d32f2f;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 420px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 24px;
+  padding: 36px;
+  box-shadow: var(--panel-shadow);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.login-brand {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 30px;
+  color: var(--verde);
+  letter-spacing: -1px;
+  margin-bottom: 10px;
+}
+
+.login-brand span { color: var(--texto); }
+
+.login-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--texto);
+  margin-bottom: 8px;
+}
+
+.login-subtitle {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--texto);
+  margin-bottom: 8px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 14px;
+  color: var(--texto);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--verde);
+  box-shadow: 0 0 0 8px rgba(10,175,160,0.08);
+}
+
+.form-input::placeholder {
+  color: #8cae9e;
+}
+
+.btn-login {
+  width: 100%;
+  padding: 14px;
+  background: var(--verde);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  margin-top: 8px;
+  box-shadow: 0 12px 30px rgba(10,175,160,0.18);
+}
+
+.btn-login:hover {
+  background: var(--verde-d);
+  transform: translateY(-1px);
+}
+
+.btn-create-account {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  color: var(--verde);
+  border: 1px solid var(--verde);
+  border-radius: 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 12px;
+}
+
+.btn-create-account:hover {
+  background: var(--verde);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.error-message {
+  background: rgba(211,47,47,0.08);
+  border: 1px solid rgba(211,47,47,0.18);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.error-message svg {
+  width: 20px;
+  height: 20px;
+  color: var(--danger);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.error-text {
+  font-size: 14px;
+  color: var(--danger);
+  line-height: 1.6;
+}
+
+.login-footer {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--panel-border);
+  text-align: center;
+}
+
+.login-footer a {
+  color: var(--verde);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 520px) {
+  .login-container {
+    padding: 28px 20px;
+  }
+}
+/* ── RECUPERAR CONTRASEÑA ────────────────────────────── */
+.forgot-link-wrap {
+  text-align: right;
+  margin-top: 6px;
+}
+.forgot-link {
+  font-size: 13px;
+  color: var(--verde);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.forgot-link:hover {
+  color: var(--verde-d);
+  text-decoration: underline;
+}
+
+/* ── SEPARADOR ───────────────────────────────────────── */
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 4px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--panel-border);
+}
+
+/* .btn-create-account ya existe en Login_Styles.css */
