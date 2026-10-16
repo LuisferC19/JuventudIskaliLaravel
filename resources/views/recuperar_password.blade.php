@@ -21,7 +21,10 @@
   </div>
 
   
-      <form id="recoverForm" method="POST" action="{{ route('recuperar_password') }}">
+      @if (session('success'))
+        <div class="success-box" role="status">{{ session('success') }}</div>
+      @else
+      <form id="recoverForm" method="POST" action="{{ route('recuperar_password.store') }}">
         @csrf
             <div class="form-group">
         <label class="form-label" for="email">Correo electrónico registrado</label>
@@ -30,6 +33,7 @@
       </div>
       <button type="submit" class="btn-login">Enviar enlace de recuperación</button>
     </form>
+      @endif
   
   <p class="login-link-note"><a href="{{ route('login') }}">← Regresar al inicio de sesión</a></p>
 

@@ -7,7 +7,7 @@
      ══════════════════════════════════════════════════════════════ -->
 <nav id="navbar">
   <div class="nav-brand">
-    <img src="./public/img/Logo.jpeg" alt="Iskalli Logo" style="width:40px;height:40px;border-radius:8px;object-fit:cover;">
+    <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Logo.jpeg') }}" alt="Iskalli Logo" style="width:40px;height:40px;border-radius:8px;object-fit:cover;">
     <div>
       <div class="nav-name">Juventud <span>ISKALI</span></div>
     </div>
@@ -20,16 +20,16 @@
   </ul>
   <div class="nav-social">
     <a href="https://facebook.com/JuventudIskali" target="_blank" aria-label="Facebook">
-      <img src="./public/iconos/logo_facebook.png" alt="Facebook" style="width:20px;height:20px;">
+      <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/logo_facebook.png') }}" alt="Facebook" style="width:20px;height:20px;">
     </a>
     <a href="https://instagram.com/juventud_iskali" target="_blank" aria-label="Instagram">
-      <img src="./public/iconos/logo_instagram.png" alt="Instagram" style="width:20px;height:20px;">
+      <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/logo_instagram.png') }}" alt="Instagram" style="width:20px;height:20px;">
     </a>
     <a href="https://tiktok.com/@Juventud.iskali" target="_blank" aria-label="TikTok">
-      <img src="./public/iconos/logo_tiktok.png" alt="TikTok" style="width:20px;height:20px;">
+      <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/logo_tiktok.png') }}" alt="TikTok" style="width:20px;height:20px;">
     </a>
     <a href="https://youtube.com" target="_blank" aria-label="YouTube">
-      <img src="./public/iconos/logo_youtube.png" alt="YouTube" style="width:20px;height:20px;">
+      <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/logo_youtube.png') }}" alt="YouTube" style="width:20px;height:20px;">
     </a>
   </div>
   <div class="nav-actions">
@@ -47,12 +47,12 @@
       </form>
     @else
       <a href="{{ route('login') }}" class="nav-login btn-icon">
-        <img src="./public/iconos/Inicio_De_Session.png" alt="" style="width:18px;height:18px;">
+        <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/Inicio_De_Session.png') }}" alt="" style="width:18px;height:18px;">
         Iniciar sesión
       </a>
     @endauth
     <a href="https://forms.gle/uejAezgSyg4QLCCr8" target="_blank" class="nav-cta btn-icon">
-      <img src="./public/iconos/Unete.png" alt="" style="width:18px;height:18px;">
+      <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/Unete.png') }}" alt="" style="width:18px;height:18px;">
       ¡Únete!
     </a>
   </div>
@@ -67,7 +67,7 @@
   <div class="hero-inner">
     <div>
       <div class="hero-badge">
-        <div></div><img src="./public/iconos/pin_ubicacion.png" alt="Ser voluntario" style="width:18px;height:18px;">
+        <div></div><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/pin_ubicacion.png') }}" alt="Ser voluntario" style="width:18px;height:18px;">
         Colectivo juvenil · Tlaxcala & Puebla
       </div>
       <h1 class="hero-title">
@@ -80,15 +80,15 @@
       </p>
       <div class="hero-btns">
         <a href="https://forms.gle/uejAezgSyg4QLCCr8" target="_blank" class="btn-hero-primary btn-icon">
-          <img src="./public/iconos/voluntario.png" alt="Ser voluntario" style="width:18px;height:18px;">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/voluntario.png') }}" alt="Ser voluntario" style="width:18px;height:18px;">
           Ser voluntario
         </a>
         <a href="{{ route('login') }}" class="btn-hero-secondary btn-icon">
-          <img src="./public/iconos/avatar_usuario.png" alt="Iniciar sesión" style="width:18px;height:18px;">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/avatar_usuario.png') }}" alt="Iniciar sesión" style="width:18px;height:18px;">
           Iniciar sesión
         </a>
         <a href="#proyectos" class="btn-hero-secondary btn-icon">
-          <img src="./public/iconos/Campanas.png" alt="Ver proyectos" style="width:18px;height:18px;">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/Campanas.png') }}" alt="Ver proyectos" style="width:18px;height:18px;">
           Ver proyectos
         </a>
       </div>
@@ -106,7 +106,7 @@
           <div class="stat-lbl">Estados</div>
         </div>
         <div class="stat-item">
-          <div class="stat-num"><img src="./public/iconos/amor_corazon_manos.png" alt="Con amor" style="width:20px;height:20px;"></div>
+          <div class="stat-num"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/amor_corazon_manos.png') }}" alt="Con amor" style="width:20px;height:20px;"></div>
           <div class="stat-lbl">Con amor</div>
         </div>
       </div>
@@ -114,10 +114,10 @@
  
     <div class="hero-mascot">
       <div class="mascot-card">
-        <div class="tag-float tag-a"><img src="./public/iconos/sostenible.png" alt="Ser voluntario" style="width:18px;height:18px;"> Sostenible</div>
-        <div class="tag-float tag-b"><img src="./public/iconos/inclusion_personas.png" alt="Ser voluntario" style="width:18px;height:18px;">Inclusión</div>
-        <div class="tag-float tag-c"><img src="./public/iconos/voluntario.png" alt="Ser voluntario" style="width:18px;height:18px;">Voluntario</div>
-        <img src="./public/img/Mascota_Iski_1.jpeg" class="mascot-img" alt="Mascota Iski" style="width:180px;height:180px;border-radius:12px;object-fit:cover;">
+        <div class="tag-float tag-a"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/sostenible.png') }}" alt="Ser voluntario" style="width:18px;height:18px;"> Sostenible</div>
+        <div class="tag-float tag-b"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/inclusion_personas.png') }}" alt="Ser voluntario" style="width:18px;height:18px;">Inclusión</div>
+        <div class="tag-float tag-c"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/voluntario.png') }}" alt="Ser voluntario" style="width:18px;height:18px;">Voluntario</div>
+        <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Mascota_Iski_1.jpeg') }}" class="mascot-img" alt="Mascota Iski" style="width:180px;height:180px;border-radius:12px;object-fit:cover;">
         <div class="mascot-name">-ISKI-</div>
         <div class="mascot-desc">Tu amigo de Fundación Iskali A.C.</div>
       </div>
@@ -142,22 +142,22 @@
         </p>
         <div class="quienes-values">
           <div class="value-card">
-          <div class="value-icon"><img src="./public/iconos/servicios_sociales.png" alt="Servicio" style="width:40px;height:40px;"></div>
+          <div class="value-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/servicios_sociales.png') }}" alt="Servicio" style="width:40px;height:40px;"></div>
             <div class="value-title">Servicio</div>
             <div class="value-desc">Acción directa para comunidades vulnerables con respeto y dignidad.</div>
           </div>
           <div class="value-card">
-          <div class="value-icon"><img src="./public/iconos/proteccion_naturaleza.png" alt="Ambiente" style="width:40px;height:40px;"></div>
+          <div class="value-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/proteccion_naturaleza.png') }}" alt="Ambiente" style="width:40px;height:40px;"></div>
             <div class="value-title">Ambiente</div>
             <div class="value-desc">Reforestación, reciclaje y educación ambiental como ejes centrales.</div>
           </div>
           <div class="value-card">
-          <div class="value-icon"><img src="./public/iconos/inclusion_personas.png" alt="Inclusión" style="width:40px;height:40px;"></div>
+          <div class="value-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/inclusion_personas.png') }}" alt="Inclusión" style="width:40px;height:40px;"></div>
             <div class="value-title">Inclusión</div>
             <div class="value-desc">Talleres de LSM, braille y apoyo a grupos vulnerados.</div>
           </div>
           <div class="value-card">
-          <div class="value-icon"><img src="./public/iconos/liderazgo_manos.png" alt="Liderazgo" style="width:40px;height:40px;"></div>
+          <div class="value-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/liderazgo_manos.png') }}" alt="Liderazgo" style="width:40px;height:40px;"></div>
             <div class="value-title">Liderazgo</div>
             <div class="value-desc">Formamos líderes juveniles conscientes y comprometidos.</div>
           </div>
@@ -173,7 +173,7 @@
             <div class="tl-dot"></div>
             <div class="tl-desc">Nace Juventud Iskali</div>
             <div class="tl-img-wrap">
-              <img src="./public/img/actividades_2021.png" alt="Actividades 2021">
+              <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/actividades_2021.png') }}" alt="Actividades 2021">
             </div>
           </div>
           <div class="tl-item">
@@ -181,7 +181,7 @@
             <div class="tl-dot"></div>
             <div class="tl-desc">Donaciones &amp; bazares</div>
             <div class="tl-img-wrap">
-              <img src="./public/img/actividades_2022.png" alt="Actividades 2022">
+              <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/actividades_2022.png') }}" alt="Actividades 2022">
             </div>
           </div>
           <div class="tl-item">
@@ -189,7 +189,7 @@
             <div class="tl-dot"></div>
             <div class="tl-desc">Reforestaciones &amp; Red Club</div>
             <div class="tl-img-wrap">
-              <img src="./public/img/actividades_2023.png" alt="Actividades 2023">
+              <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/actividades_2023.png') }}" alt="Actividades 2023">
             </div>
           </div>
           <div class="tl-item">
@@ -197,7 +197,7 @@
             <div class="tl-dot"></div>
             <div class="tl-desc">Fundación Iskali A.C.</div>
             <div class="tl-img-wrap">
-              <img src="./public/img/actividades_2024.png" alt="Actividades 2024">
+              <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/actividades_2024.png') }}" alt="Actividades 2024">
             </div>
           </div>
           <div class="tl-item">
@@ -206,17 +206,17 @@
             <div class="tl-2025-badge">¡Hoy!</div>
             <div class="tl-desc">Sistema Iskali</div>
             <div class="tl-img-wrap">
-              <img src="./public/img/actividades_2025.png" alt="Actividades 2025">
+              <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/actividades_2025.png') }}" alt="Actividades 2025">
             </div>
           </div>
         </div>
 
         <div class="section-block">
-          <div class="section-label"><img src="./public/iconos/redes_sociales.png" alt="Redes" style="width:18px;height:18px;">  Redes sociales</div>
+          <div class="section-label"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/redes_sociales.png') }}" alt="Redes" style="width:18px;height:18px;">  Redes sociales</div>
           <p class="section-sub section-meta">
-           <img src="./public/iconos/logo_facebook.png" alt="Facebook" style="width:18px;height:18px;"> <strong> Facebook:</strong> Juventud Iskali · 1.1K seguidores<br>
-           <img src="./public/iconos/logo_instagram.png" alt="Instagram" style="width:18px;height:18px;"> <strong> Instagram:</strong> @juventud_iskali · 953 seguidores<br>
-           <img src="./public/iconos/Logo_tiktok.png" alt="TikTok" style="width:18px;height:18px;"> <strong> TikTok:</strong> Juventud.iskali
+           <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/logo_facebook.png') }}" alt="Facebook" style="width:18px;height:18px;"> <strong> Facebook:</strong> Juventud Iskali · 1.1K seguidores<br>
+           <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/logo_instagram.png') }}" alt="Instagram" style="width:18px;height:18px;"> <strong> Instagram:</strong> @juventud_iskali · 953 seguidores<br>
+           <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/logo_tiktok.png') }}" alt="TikTok" style="width:18px;height:18px;"> <strong> TikTok:</strong> Juventud.iskali
           </p>
         </div>
       </div>
@@ -235,7 +235,7 @@
     <div class="proj-grid">
       <div class="proj-card c-teal">
         <div class="proj-cat">Apoyo social</div>
-        <div class="proj-icon"><img src="./public/iconos/donaciones.png" alt="Apoyo social" style="width:40px;height:40px;"></div>
+        <div class="proj-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/donaciones.png') }}" alt="Apoyo social" style="width:40px;height:40px;"></div>
         <div class="proj-name">Café para Todos</div>
         <div class="proj-desc">Donaciones de alimentos, despensas, kits escolares, bucales y de mujeres para comunidades vulnerables.</div>
         <div class="proj-tags">
@@ -247,7 +247,7 @@
  
       <div class="proj-card c-magenta">
         <div class="proj-cat">Inclusión</div>
-        <div class="proj-icon"><img src="./public/iconos/inclusion_personas.png" alt="Inclusión" style="width:40px;height:40px;"></div>
+        <div class="proj-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/inclusion_personas.png') }}" alt="Inclusión" style="width:40px;height:40px;"></div>
         <div class="proj-name">Concierto Inclusivo</div>
         <div class="proj-desc">Arte y música como herramientas de integración. Talleres de braille, Lengua de Señas Mexicana y expresión juvenil.</div>
         <div class="proj-tags">
@@ -259,7 +259,7 @@
  
       <div class="proj-card c-lila">
         <div class="proj-cat">Medio Ambiente</div>
-        <div class="proj-icon"><img src="./public/iconos/medio_ambiente_planta.png" alt="Medio Ambiente" style="width:40px;height:40px;"></div>
+        <div class="proj-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/medio_ambiente_planta.png') }}" alt="Medio Ambiente" style="width:40px;height:40px;"></div>
         <div class="proj-name">Sueños Sostenibles</div>
         <div class="proj-desc">Reforestaciones, limpieza de calles, talleres de huertos, reciclaje, ferias ecológicas y murales conscientes.</div>
         <div class="proj-tags">
@@ -271,7 +271,7 @@
  
       <div class="proj-card c-teal">
         <div class="proj-cat">Donación responsable</div>
-        <div class="proj-icon"><img src="./public/iconos/amor_corazon_manos.png" alt="Re-Vístete" style="width:40px;height:40px;"></div>
+        <div class="proj-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/amor_corazon_manos.png') }}" alt="Re-Vístete" style="width:40px;height:40px;"></div>
         <div class="proj-name">Re-Vístete</div>
         <div class="proj-desc">Manos Amigas, Re-Vístete y donación a centros de rehabilitación. Ropa, libros y mucho más para quienes más lo necesitan.</div>
         <div class="proj-tags">
@@ -283,7 +283,7 @@
  
       <div class="proj-card c-magenta">
         <div class="proj-cat">Acompañamiento</div>
-        <div class="proj-icon"><img src="./public/iconos/colaboracion_equipo.png" alt="Acompañar" style="width:40px;height:40px;"></div>
+        <div class="proj-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/colaboracion_equipo.png') }}" alt="Acompañar" style="width:40px;height:40px;"></div>
         <div class="proj-name">Acompañar sin Juzgar</div>
         <div class="proj-desc">Visitas a hospitales, adultos mayores y centros de rehabilitación. Escucha activa, lenguaje digno y respeto a procesos ajenos.</div>
         <div class="proj-tags">
@@ -295,7 +295,7 @@
  
       <div class="proj-card c-lila">
         <div class="proj-cat">Salud mental & Liderazgo</div>
-        <div class="proj-icon"><img src="./public/iconos/servicios_sociales.png" alt="Salud mental" style="width:40px;height:40px;"></div>
+        <div class="proj-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/servicios_sociales.png') }}" alt="Salud mental" style="width:40px;height:40px;"></div>
         <div class="proj-name">Hablemos de Salud Mental</div>
         <div class="proj-desc">Talleres de autoestima, introspección, autocuidado del voluntario y formación de liderazgo juvenil consciente.</div>
         <div class="proj-tags">
@@ -318,21 +318,21 @@
     <div class="como-grid">
       <div class="como-card">
         <div class="como-num n1">1</div>
-        <div class="como-icon"><img src="./public/iconos/voluntarios.png" alt="Ser voluntario" style="width:70px;height:70px;"></div>
+        <div class="como-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/Voluntarios.png') }}" alt="Ser voluntario" style="width:70px;height:70px;"></div>
         <div class="como-title">Voluntariado</div>
         <div class="como-desc">Únete al equipo y aporta tus manos y conocimiento para llevar a cabo actividades de servicio comunitario.</div>
         <a href="https://forms.gle/uejAezgSyg4QLCCr8" target="_blank" class="como-btn bt1">Quiero ser voluntario</a>
       </div>
       <div class="como-card">
         <div class="como-num n2">2</div>
-        <div class="como-icon"><img src="./public/iconos/colaboracion_equipo.png" alt="Colaborador" style="width:70px;height:70px;"></div>
+        <div class="como-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/colaboracion_equipo.png') }}" alt="Colaborador" style="width:70px;height:70px;"></div>
         <div class="como-title">Colaborador</div>
         <div class="como-desc">Si dispones de poco tiempo, pero cuentas con muchas ganas de ayudar y tienes un negocio, puedes ser uno de nuestros centros de acopio o un intermediario en tu comunidad para que podamos ayudar a más personas</div>
         <a href="mailto:contacto@iskali.org" class="como-btn bt2">Ser colaborador</a>
       </div>
       <div class="como-card">
         <div class="como-num n3">3</div>
-        <div class="como-icon"><img src="./public/iconos/patrocinador.png" alt="Patrocinador" style="width:70px;height:70px;"></div>
+        <div class="como-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/patrocinador.png') }}" alt="Patrocinador" style="width:70px;height:70px;"></div>
         <div class="como-title">Patrocinador</div>
         <div class="como-desc">Colabora con una cuota monetaria o en especie destinada a casos específicos y campañas activas.</div>
         <a href="mailto:contacto@iskali.org" class="como-btn bt3">Patrocinar</a>
@@ -345,22 +345,22 @@
       <p class="section-sub" style="margin-bottom: 2rem;">Elige el tipo de participación que se ajuste mejor a ti y tus capacidades.</p>
       <div class="donor-type-grid">
         <a href="{{ route('donadores.index') }}?tipo=anonimo" class="donor-type-card">
-          <div class="donor-type-icon"><img src="./public/iconos/anonimo.png" alt="Anónimo" style="width:70px;height:70px;"></div>
+          <div class="donor-type-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/anonimo.png') }}" alt="Anónimo" style="width:70px;height:70px;"></div>
           <div class="donor-type-title">Anónimo (Invitado)</div>
           <div class="donor-type-desc">Dona sin registrarte, mantén tu privacidad</div>
         </a>
         <a href="{{ route('donadores.index') }}?tipo=persona" class="donor-type-card">
-          <div class="donor-type-icon"><img src="./public/iconos/persona.png" alt="Persona" style="width:70px;height:70px;"></div>
+          <div class="donor-type-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/persona.png') }}" alt="Persona" style="width:70px;height:70px;"></div>
           <div class="donor-type-title">Persona</div>
           <div class="donor-type-desc">Registro individual con tus datos</div>
         </a>
         <a href="{{ route('donadores.index') }}?tipo=grupo" class="donor-type-card">
-          <div class="donor-type-icon"><img src="./public/iconos/grupo.png" alt="Grupo" style="width: 70px;height: 70px;"></div>
+          <div class="donor-type-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/grupo.png') }}" alt="Grupo" style="width: 70px;height: 70px;"></div>
           <div class="donor-type-title">Grupo</div>
           <div class="donor-type-desc">Colectivo o equipo de amigos</div>
         </a>
         <a href="{{ route('donadores.index') }}?tipo=organizacion" class="donor-type-card">
-          <div class="donor-type-icon"><img src="./public/iconos/empresa.png" alt="Organización" style="width: 70px;height: 70px;"></div>
+          <div class="donor-type-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/empresa.png') }}" alt="Organización" style="width: 70px;height: 70px;"></div>
           <div class="donor-type-title">Organización</div>
           <div class="donor-type-desc">Empresa o institución oficial</div>
         </a>
@@ -378,70 +378,70 @@
 
       <div class="colab-card">
         <div class="colab-photo">
-          <img src="./public/img/Colaborador3_deRegil.jpeg" alt="de Regil">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Colaborador3_deRegil.jpeg') }}" alt="de Regil">
         </div>
         <div class="colab-name">de Regil</div>
       </div>
 
       <div class="colab-card">
         <div class="colab-photo">
-          <img src="./public/img/Colaborador1_CreativaColectiva.jpeg" alt="Creativa Colectiva">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Colaborador1_CreativaColectiva.jpeg') }}" alt="Creativa Colectiva">
         </div>
         <div class="colab-name">Creativa Colectiva</div>
       </div>
 
       <div class="colab-card">
         <div class="colab-photo">
-          <img src="./public/img/Colaborador2_Alebrijes.jpeg" alt="Alebrijes">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Colaborador2_Alebrijes.jpeg') }}" alt="Alebrijes">
         </div>
         <div class="colab-name">Alebrijes</div>
       </div>
 
       <div class="colab-card">
         <div class="colab-photo">
-          <img src="./public/img/Colaborador5_DIVM.jpeg" alt="DIVM Educación Especial">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Colaborador5_DIVM.jpeg') }}" alt="DIVM Educación Especial">
         </div>
         <div class="colab-name">DIVM Educación Especial</div>
       </div>
 
       <div class="colab-card">
         <div class="colab-photo">
-          <img src="./public/img/Colaborador4_brillantEnglish.jpeg" alt="Brilliant English">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Colaborador4_brillantEnglish.jpeg') }}" alt="Brilliant English">
         </div>
         <div class="colab-name">Brilliant English</div>
       </div>
 
       <div class="colab-card">
         <div class="colab-photo">
-          <img src="./public/img/Colaborador9_juventud2000.jpeg" alt="Juventud 2000">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Colaborador9_juventud2000.jpeg') }}" alt="Juventud 2000">
         </div>
         <div class="colab-name">Movimiento Juventud 2000</div>
       </div>
 
       <div class="colab-card">
         <div class="colab-photo">
-          <img src="./public/img/Colaborador7_PizzasNico.jpeg" alt="Pizzas Nico">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Colaborador7_PizzasNico.jpeg') }}" alt="Pizzas Nico">
         </div>
         <div class="colab-name">Pizzas Nico</div>
       </div>
 
       <div class="colab-card">
         <div class="colab-photo">
-          <img src="./public/img/Colaborador6_fitBody.jpeg" alt="Fit Body">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Colaborador6_fitBody.jpeg') }}" alt="Fit Body">
         </div>
         <div class="colab-name">Fit Body</div>
       </div>
 
       <div class="colab-card">
         <div class="colab-photo">
-          <img src="./public/img/Colaborador8_VentaDProductos.jpeg" alt="Venta de Productos D">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Colaborador8_VentaDProductos.jpeg') }}" alt="Venta de Productos D">
         </div>
         <div class="colab-name">Venta de Productos D</div>
       </div>
 
       <div class="colab-card">
         <div class="colab-photo">
-          <img src="./public/img/Colaborador10_papeleriaNery.jpeg" alt="Papelería Nery Edgar">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Colaborador10_papeleriaNery.jpeg') }}" alt="Papelería Nery Edgar">
         </div>
         <div class="colab-name">Papelería Nery Edgar</div>
       </div>
@@ -457,19 +457,19 @@
     <p class="redes-sub">Comparte, inspira y suma más manos al cambio.</p>
     <div class="redes-cards">
       <a href="https://facebook.com/JuventudIskali" target="_blank" class="red-card">
-        <div class="red-icon"><img src="./public/iconos/logo_facebook.png" alt="Facebook" style="width:40px;height:40px;"></div>
+        <div class="red-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/logo_facebook.png') }}" alt="Facebook" style="width:40px;height:40px;"></div>
         <div class="red-name">Facebook</div>
         <div class="red-handle">Juventud Iskali</div>
         <div class="red-followers">1,100 seguidores</div>
       </a>
       <a href="https://instagram.com/juventud_iskali" target="_blank" class="red-card">
-        <div class="red-icon"><img src="./public/iconos/logo_instagram.png" alt="Instagram" style="width:40px;height:40px;"></div>
+        <div class="red-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/logo_instagram.png') }}" alt="Instagram" style="width:40px;height:40px;"></div>
         <div class="red-name">Instagram</div>
         <div class="red-handle">@juventud_iskali</div>
         <div class="red-followers">953 seguidores</div>
       </a>
       <a href="https://tiktok.com/@Juventud.iskali" target="_blank" class="red-card">
-        <div class="red-icon"><img src="./public/iconos/logo_tiktok.png" alt="TikTok" style="width:40px;height:40px;"></div>
+        <div class="red-icon"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/logo_tiktok.png') }}" alt="TikTok" style="width:40px;height:40px;"></div>
         <div class="red-name">TikTok</div>
         <div class="red-handle">Juventud.iskali</div>
         <div class="red-followers">¡Síguenos!</div>
@@ -480,11 +480,11 @@
     <div class="qr-section">
       <div class="qr-box">
         <div class="qr-label">
-          <img src="./public/iconos/formulario_firma.png" alt="Formulario de Voluntario" style="width:16px;height:16px;">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/formulario_firma.png') }}" alt="Formulario de Voluntario" style="width:16px;height:16px;">
           Formulario de Voluntario
         </div>
         <div class="qr-img">
-          <img src="./public/img/Codigo_Informacion.jpeg" alt="Código QR Voluntario">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Codigo_Informacion.jpeg') }}" alt="Código QR Voluntario">
         </div>
         <div class="qr-badge">
           <span class="qr-badge-dot"></span>
@@ -495,7 +495,7 @@
         <p class="qr-title">¿Listo para<br>ser parte del cambio?</p>
         <p class="qr-text">Escanea el código QR o llena el formulario de voluntario. ¡Te esperamos!</p>
         <a href="https://forms.gle/uejAezgSyg4QLCCr8" target="_blank" class="qr-btn btn-icon">
-          <img src="./public/iconos/conteo_seguidores.png" alt="Voluntario" style="width:18px;height:18px;"> Llenar formulario
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/conteo_seguidores.png') }}" alt="Voluntario" style="width:18px;height:18px;"> Llenar formulario
         </a>
       </div>
     </div>
@@ -508,14 +508,14 @@
     <h2 class="cta-title">Tu tiempo puede <span class="c-teal">cambiar vidas</span></h2>
     <p class="cta-sub">Cada acción cuenta. Cada voluntario suma. Juntos creamos un impacto real en las comunidades de Tlaxcala y Puebla.</p>
     <a href="https://forms.gle/uejAezgSyg4QLCCr8" target="_blank" class="cta-btn-main btn-icon">
-      <img src="./public/iconos/Unete.png" alt="Voluntario" style="width:20px;height:20px;">
+      <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/Unete.png') }}" alt="Voluntario" style="width:20px;height:20px;">
       ¡Quiero ser voluntario!
     </a>
     <div class="trust-row">
-      <div class="trust-item"><img src="./public/iconos/marca_verificacion.png" alt="Verificado" style="width:18px;height:18px;"> Sin experiencia previa necesaria</div>
-      <div class="trust-item"><img src="./public/iconos/marca_verificacion.png" alt="Verificado" style="width:18px;height:18px;"> Tlaxcala & Puebla</div>
-      <div class="trust-item"><img src="./public/iconos/marca_verificacion.png" alt="Verificado" style="width:18px;height:18px;"> Comunidad increíble</div>
-      <div class="trust-item"><img src="./public/iconos/marca_verificacion.png" alt="Verificado" style="width:18px;height:18px;"> Formación en liderazgo</div>
+      <div class="trust-item"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/marca_verificacion.png') }}" alt="Verificado" style="width:18px;height:18px;"> Sin experiencia previa necesaria</div>
+      <div class="trust-item"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/marca_verificacion.png') }}" alt="Verificado" style="width:18px;height:18px;"> Tlaxcala & Puebla</div>
+      <div class="trust-item"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/marca_verificacion.png') }}" alt="Verificado" style="width:18px;height:18px;"> Comunidad increíble</div>
+      <div class="trust-item"><img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/marca_verificacion.png') }}" alt="Verificado" style="width:18px;height:18px;"> Formación en liderazgo</div>
     </div>
   </div>
 </section>

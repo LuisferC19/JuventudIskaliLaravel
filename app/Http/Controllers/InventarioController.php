@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AjustarInventarioRequest;
-use App\Http\Requests\RevertirAjusteInventarioRequest;
 use App\Services\InventarioService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +13,7 @@ class InventarioController extends Controller
     public function __construct(private readonly InventarioService $inventarioService)
     {
         $this->middleware('permiso:inventario,ver')->only('index', 'movimientos');
-        $this->middleware('permiso:inventario,editar')->only('ajustar', 'revertirUltimoAjuste');
+        $this->middleware('permiso:inventario,editar')->only('ajustar');
     }
 
     public function index()
@@ -65,24 +64,6 @@ class InventarioController extends Controller
         }
 
         return redirect()->route('inventario.index')->with('success', 'Ajuste de inventario registrado correctamente.');
-    }
-
-    public function revertirUltimoAjuste(RevertirAjusteInventarioRequest $request)
-    {
-        $datos = $request->validated();
-
-        $revertido = $this->inventarioService->revertirUltimoAjuste(
-            (int) $datos['id_tipo_bien'],
-            (int) $request->user()->getAuthIdentifier()
-        );
-
-        if (! $revertido) {
-            return redirect()->route('inventario.movimientos')
-                ->withErrors(['inventario' => 'Solo se puede revertir el ajuste más reciente cuando conserva un snapshot válido.']);
-        }
-
-        return redirect()->route('inventario.movimientos')
-            ->with('success', 'Ajuste revertido mediante un movimiento compensatorio.');
     }
 
     private function listarInventario()
@@ -136,21 +117,7 @@ class InventarioController extends Controller
             ->when($limite !== null, fn ($query) => $query->limit($limite))
             ->get();
 
-        $ultimoMovimientoPorInventario = $movimientos->groupBy('id_inventario')
-            ->map(fn ($registros) => (int) $registros->first()->id_movimiento);
-
-        return $movimientos->map(function ($movimiento) use ($ultimoMovimientoPorInventario) {
-            $motivoOriginal = (string) ($movimiento->motivo ?? '');
-            $snapshot = preg_match('/(?:\r?\n)?\[iskali_inventory_snapshot_v1:\{.*\}\]$/sD', $motivoOriginal) === 1;
-            $movimiento->puede_revertirse_ajuste = $movimiento->tipo_movimiento === 'ajuste'
-                && $ultimoMovimientoPorInventario->get($movimiento->id_inventario) === (int) $movimiento->id_movimiento
-                && $snapshot;
-            $movimiento->motivo = preg_replace(
-                '/(?:\r?\n)?\[iskali_inventory_snapshot_v1:\{.*\}\]$/sD',
-                '',
-                $motivoOriginal
-            );
-
+        return $movimientos->map(function ($movimiento) {
             return $movimiento;
         });
     }

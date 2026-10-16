@@ -4,321 +4,218 @@
 @section('content')
 
 <div style="display:flex;width:100%;">
-  
   <div class="main">
     @include('partials.topbar')
-    
     <div class="content">
-
-      <!-- Tabla de voluntarios -->
       <div class="card">
         <div class="card-header">
           <h3>Voluntarios</h3>
           <div class="toolbar">
             <input type="text" class="search-input" placeholder="Buscar voluntario..." oninput="filtrarTabla(this,'tabla-voluntarios')">
-            <select style="width:150px;">
-              <option value="">Todas las disponibilidades</option>
-              <option>Tiempo completo</option>
-              <option>Lunes–viernes</option>
-              <option>Fines de semana</option>
-              <option>Bajo demanda</option>
-            </select>
-            <button class="btn btn-primary" onclick="openModal('modal-voluntario')">+ Nuevo voluntario</button>
+            @can('permiso', ['voluntarios', 'crear'])
+              <a class="btn btn-primary" href="{{ route('voluntarios.create') }}">+ Nuevo voluntario</a>
+            @endcan
           </div>
         </div>
-
-        <table id="tabla-voluntarios">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Teléfono</th>
-              <th>Zona asignada</th>
-              <th>Disponibilidad</th>
-              <th>Fecha ingreso</th>
-              <th>Activo</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>#V001</td>
-              <td>Jessica R.</td>
-              <td>222-500-0001</td>
-              <td>San Marcos</td>
-              <td><span class="badge badge-blue">Tiempo completo</span></td>
-              <td>2025-06-01</td>
-              <td><span class="badge badge-green">Sí</span></td>
-              <td><button class="btn btn-secondary btn-sm" onclick="openModal('modal-asignacion')">Ver asignaciones</button></td>
-            </tr>
-            <tr>
-              <td>#V002</td>
-              <td>Carlos M.</td>
-              <td>222-500-0002</td>
-              <td>La Loma</td>
-              <td><span class="badge badge-gray">Fines de semana</span></td>
-              <td>2025-09-15</td>
-              <td><span class="badge badge-green">Sí</span></td>
-              <td><button class="btn btn-secondary btn-sm" onclick="openModal('modal-asignacion')">Ver asignaciones</button></td>
-            </tr>
-            <tr>
-              <td>#V003</td>
-              <td>Fernando R.</td>
-              <td>222-500-0003</td>
-              <td>El Rincón</td>
-              <td><span class="badge badge-amber">Lunes–viernes</span></td>
-              <td>2025-11-01</td>
-              <td><span class="badge badge-green">Sí</span></td>
-              <td><button class="btn btn-secondary btn-sm" onclick="openModal('modal-asignacion')">Ver asignaciones</button></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Asignaciones de voluntarios -->
-      <div class="card">
-        <div class="card-header">
-          <h3>Asignaciones de voluntarios</h3>
-          <button class="btn btn-primary" onclick="openModal('modal-asignacion')">+ Nueva asignación</button>
+        <div style="overflow-x:auto;">
+          <table id="tabla-voluntarios">
+            <thead><tr><th>ID</th><th>Nombre</th><th>Teléfono</th><th>Zona asignada</th><th>Disponibilidad</th><th>Fecha ingreso</th><th>Activo</th><th></th></tr></thead>
+            <tbody>
+              @forelse ($voluntarios as $voluntario)
+                <tr>
+                  <td>#V{{ $voluntario->id_voluntario }}</td>
+                  <td>{{ $voluntario->nombre }} {{ $voluntario->apellido }}</td>
+                  <td>{{ $voluntario->telefono_contacto ?: '—' }}</td>
+                  <td>{{ str_replace('_', ' ', ucfirst($voluntario->zona_asignada)) }}</td>
+                  <td><span class="badge badge-blue">{{ str_replace('_', ' ', ucfirst($voluntario->disponibilidad)) }}</span></td>
+                  <td>{{ \Illuminate\Support\Carbon::parse($voluntario->fecha_ingreso)->format('Y-m-d') }}</td>
+                  <td><span class="badge {{ $voluntario->activo ? 'badge-green' : 'badge-gray' }}">{{ $voluntario->activo ? 'Sí' : 'No' }}</span></td>
+                  <td>
+                    @can('permiso', ['voluntarios', 'editar'])
+                      <a class="btn btn-secondary btn-sm" href="{{ route('voluntarios.edit', $voluntario->id_voluntario) }}">Editar</a>
+                    @endcan
+                  </td>
+                </tr>
+              @empty
+                <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No hay voluntarios registrados.</td></tr>
+              @endforelse
+            </tbody>
+          </table>
         </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Voluntario</th>
-              <th>Entrega</th>
-              <th>Asignado por</th>
-              <th>Fecha asignación</th>
-              <th>Fecha compromiso</th>
-              <th>Estado</th>
-              <th>Observaciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>#A001</td>
-              <td>Jessica R.</td>
-              <td>#E002 — Medicamentos</td>
-              <td>Eva Sánchez</td>
-              <td>2026-03-18 08:00</td>
-              <td>2026-03-20 09:00</td>
-              <td><span class="badge badge-amber">Pendiente</span></td>
-              <td>—</td>
-            </tr>
-            <tr>
-              <td>#A002</td>
-              <td>Jessica R.</td>
-              <td>#E003 — Ropa 3 pzas</td>
-              <td>Eva Sánchez</td>
-              <td>2026-03-19 07:30</td>
-              <td>2026-03-19 14:00</td>
-              <td><span class="badge badge-blue">En camino</span></td>
-              <td>Salió puntual</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
-      <!-- Registro de Asistencia a Actividades -->
+      <div class="card">
+        <div class="card-header"><h3>Asignaciones de voluntarios</h3></div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>ID</th><th>Voluntario</th><th>Entrega</th><th>Asignado por</th><th>Fecha asignación</th><th>Fecha compromiso</th><th>Estado</th><th>Observaciones</th></tr></thead>
+            <tbody>
+              @forelse ($asignaciones as $asignacion)
+                <tr>
+                  <td>#A{{ $asignacion->id_asignacion }}</td>
+                  <td>{{ $asignacion->voluntario_nombre }} {{ $asignacion->voluntario_apellido }}</td>
+                  <td>#E{{ $asignacion->id_entrega }}</td>
+                  <td>{{ trim(($asignacion->asignador_nombre ?? '').' '.($asignacion->asignador_apellido ?? '')) ?: '—' }}</td>
+                  <td>{{ \Illuminate\Support\Carbon::parse($asignacion->fecha_asignacion)->format('Y-m-d H:i') }}</td>
+                  <td>{{ \Illuminate\Support\Carbon::parse($asignacion->fecha_compromiso)->format('Y-m-d H:i') }}</td>
+                  <td><span class="badge badge-amber">{{ str_replace('_', ' ', ucfirst($asignacion->estado)) }}</span></td>
+                  <td>{{ $asignacion->observaciones_voluntario ?: '—' }}</td>
+                </tr>
+              @empty
+                <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No hay asignaciones registradas.</td></tr>
+              @endforelse
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <h3>Registro de Asistencia a Actividades</h3>
           <div class="toolbar">
             <select id="selector-actividad" onchange="cargarVoluntariosActividad(this.value)">
               <option value="">Seleccionar actividad...</option>
-                                                <option value="1">
-                    Entrega de víveres — San Martín 
-                    (05/10/2026)
-                  </option>
-                                  <option value="2">
-                    Jornada de salud — Tlaxcala 
-                    (12/10/2026)
-                  </option>
-                                  <option value="3">
-                    Recolecta de ropa de invierno 
-                    (20/10/2026)
-                  </option>
-                                          </select>
-            <button class="btn btn-primary" onclick="openModal('modal-qr-asistencia')">Generar QR de asistencia</button>
+              @foreach ($actividades as $actividad)
+                <option value="{{ $actividad->id_actividad }}">{{ $actividad->titulo }} ({{ \Illuminate\Support\Carbon::parse($actividad->fecha_inicio)->format('d/m/Y') }})</option>
+              @endforeach
+            </select>
+            <button class="btn btn-primary" type="button" onclick="abrirModalQr()">Generar QR de asistencia</button>
           </div>
         </div>
-
-        <table id="tabla-asistencia">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Zona</th>
-              <th>Estado</th>
-              <th>Método</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td colspan="6" style="text-align:center;color:#999;">Selecciona una actividad para ver los voluntarios</td>
-            </tr>
-          </tbody>
-        </table>
+        <div style="overflow-x:auto;">
+          <table id="tabla-asistencia">
+            <thead><tr><th>ID</th><th>Nombre</th><th>Zona</th><th>Estado</th><th>Método</th><th>Acción</th></tr></thead>
+            <tbody><tr><td colspan="6" style="text-align:center;color:#999;">Selecciona una actividad para ver los voluntarios</td></tr></tbody>
+          </table>
+        </div>
       </div>
-
     </div>
   </div>
 </div>
 
-<!-- Modal: QR de Asistencia -->
-<div id="modal-qr-asistencia" class="modal">
-  <div class="modal-content" style="text-align:center;max-width:400px;">
+<div id="modal-qr-asistencia" class="modal" style="display:none;">
+  <div class="modal-content" style="text-align:center;max-width:440px;">
     <div class="modal-header">
       <h3>Código QR de Asistencia</h3>
-      <button type="button" class="modal-close" onclick="closeModal('modal-qr-asistencia')">✕</button>
+      <button type="button" class="modal-close" onclick="closeModal('modal-qr-asistencia')" aria-label="Cerrar">✕</button>
     </div>
     <div class="modal-body">
+      <label for="selector-voluntario-qr">Voluntario</label>
+      <select id="selector-voluntario-qr" class="form-control" style="width:100%;margin:8px 0 16px;">
+        <option value="">Seleccionar voluntario...</option>
+        @foreach ($voluntarios->where('activo', true) as $voluntario)
+          <option value="{{ $voluntario->id_voluntario }}">{{ $voluntario->nombre }} {{ $voluntario->apellido }}</option>
+        @endforeach
+      </select>
       <div id="qr-container" style="margin:20px auto;"></div>
-      <p style="margin-top:15px;font-size:12px;color:#666;">Token: <span id="qr-token" style="font-family:monospace;"></span></p>
-      <p style="font-size:12px;color:#999;">Los voluntarios pueden escanear este código para registrar su asistencia.</p>
+      <p id="qr-estado" style="margin-top:15px;font-size:12px;color:#666;"></p>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" onclick="closeModal('modal-qr-asistencia')">Cerrar</button>
+      <button type="button" class="btn btn-primary" onclick="generarQr()">Generar código</button>
     </div>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-// Cargar voluntarios según actividad seleccionada
-function cargarVoluntariosActividad(id_actividad) {
-  if (!id_actividad) {
-    document.getElementById('tabla-asistencia').querySelector('tbody').innerHTML = 
-      '<tr><td colspan="6" style="text-align:center;color:#999;">Selecciona una actividad para ver los voluntarios</td></tr>';
+const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+const rutaAsistencia = @json(route('voluntarios.asistencia', ['actividad' => '__ID__']));
+const rutaRegistrarAsistencia = @json(route('voluntarios.asistencia.registrar'));
+const rutaGenerarQr = @json(route('voluntarios.qr.generar'));
+
+function textoSeguro(value) {
+  const elemento = document.createElement('span');
+  elemento.textContent = value ?? '';
+  return elemento.innerHTML;
+}
+
+async function peticionJson(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Accept': 'application/json',
+      'X-CSRF-TOKEN': csrfToken,
+      ...(options.headers || {})
+    }
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    const message = data.message || Object.values(data.errors || {}).flat().join(' ') || 'No se pudo completar la solicitud.';
+    throw new Error(message);
+  }
+  return data;
+}
+
+async function cargarVoluntariosActividad(idActividad) {
+  const tbody = document.querySelector('#tabla-asistencia tbody');
+  if (!idActividad) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">Selecciona una actividad para ver los voluntarios</td></tr>';
     return;
   }
-
-  fetch(`index.php?modulo=voluntarios&accion=obtener_asistencia&id_actividad=${id_actividad}`)
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        const tbody = document.getElementById('tabla-asistencia').querySelector('tbody');
-        tbody.innerHTML = '';
-        
-        if (data.asistencia.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">No hay voluntarios asignados a esta actividad</td></tr>';
-        } else {
-          data.asistencia.forEach(asist => {
-            const estado = asist.presente ? '<span class="badge badge-green">Presente</span>' : '<span class="badge badge-gray">Ausente</span>';
-            const metodo = asist.metodo === 'qr' ? '<span class="badge badge-blue">QR</span>' : '<span class="badge badge-amber">Manual</span>';
-            tbody.innerHTML += `
-              <tr>
-                <td>${asist.id_asistencia}</td>
-                <td>${asist.nombre_voluntario}</td>
-                <td>${asist.zona_asignada}</td>
-                <td>${estado}</td>
-                <td>${metodo}</td>
-                <td>
-                  ${!asist.presente ? `<button class="btn btn-secondary btn-sm" onclick="registrarAsistenciaManual(${asist.id_voluntario}, ${id_actividad})">Registrar</button>` : '—'}
-                </td>
-              </tr>
-            `;
-          });
-        }
-      } else {
-        alert('Error al cargar asistencia: ' + data.error);
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('Error al cargar datos');
-    });
-}
-
-// Registrar asistencia manual
-function registrarAsistenciaManual(id_voluntario, id_actividad) {
-  const formData = new FormData();
-  formData.append('id_voluntario', id_voluntario);
-  formData.append('id_actividad', id_actividad);
-  formData.append('presente', '1');
-  formData.append('metodo', 'manual');
-
-  fetch('index.php?modulo=voluntarios&accion=registrar_asistencia', {
-    method: 'POST',
-    body: formData
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        alert('Asistencia registrada');
-        cargarVoluntariosActividad(id_actividad); // Recargar tabla
-      } else {
-        alert('Error: ' + data.error);
-      }
-    })
-    .catch(error => {
-      console.error('Error:', error);
-      alert('Error al registrar asistencia');
-    });
-}
-
-// Generar QR de asistencia
-function openModal(modalId) {
-  if (modalId === 'modal-qr-asistencia') {
-    const idActividad = document.getElementById('selector-actividad').value;
-    if (!idActividad) {
-      alert('Por favor selecciona una actividad');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">Cargando asistencia...</td></tr>';
+  try {
+    const data = await peticionJson(rutaAsistencia.replace('__ID__', encodeURIComponent(idActividad)));
+    tbody.innerHTML = '';
+    if (data.asistencia.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;">No hay voluntarios activos</td></tr>';
       return;
     }
-
-    fetch('index.php?modulo=voluntarios&accion=generar_qr', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `id_actividad=${idActividad}`
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          // Limpiar contenedor QR
-          document.getElementById('qr-container').innerHTML = '';
-          document.getElementById('qr-token').textContent = data.token.substring(0, 16) + '...';
-
-          // Generar código QR con qrcode.js
-          new QRCode(document.getElementById('qr-container'), {
-            text: data.token,
-            width: 250,
-            height: 250,
-            colorDark: 'var(--teal)',
-            colorLight: '#fff'
-          });
-
-          // Mostrar modal
-          document.getElementById(modalId).style.display = 'flex';
-        } else {
-          alert('Error al generar QR: ' + data.error);
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        alert('Error al generar QR');
-      });
-  } else {
-    // Abrir otro modal (existente)
-    document.getElementById(modalId).style.display = 'flex';
+    data.asistencia.forEach(asistencia => {
+      const fila = document.createElement('tr');
+      const estado = asistencia.presente ? '<span class="badge badge-green">Presente</span>' : '<span class="badge badge-gray">Ausente</span>';
+      const metodo = asistencia.metodo === 'qr' ? '<span class="badge badge-blue">QR</span>' : asistencia.metodo === 'manual' ? '<span class="badge badge-amber">Manual</span>' : '—';
+      const accion = asistencia.presente ? '—' : `<button class="btn btn-secondary btn-sm" type="button" onclick="registrarAsistenciaManual(${asistencia.id_voluntario}, ${idActividad})">Registrar</button>`;
+      fila.innerHTML = `<td>${asistencia.id_asistencia ?? '—'}</td><td>${textoSeguro(asistencia.nombre_voluntario)}</td><td>${textoSeguro(asistencia.zona_asignada)}</td><td>${estado}</td><td>${metodo}</td><td>${accion}</td>`;
+      tbody.appendChild(fila);
+    });
+  } catch (error) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#b42318;">${textoSeguro(error.message)}</td></tr>`;
   }
 }
 
-// Cerrar modal
+async function registrarAsistenciaManual(idVoluntario, idActividad) {
+  const body = new URLSearchParams({id_voluntario: idVoluntario, id_actividad: idActividad});
+  try {
+    await peticionJson(rutaRegistrarAsistencia, {method: 'POST', body});
+    await cargarVoluntariosActividad(idActividad);
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+function abrirModalQr() {
+  if (!document.getElementById('selector-actividad').value) {
+    alert('Selecciona una actividad antes de generar el QR.');
+    return;
+  }
+  document.getElementById('qr-container').replaceChildren();
+  document.getElementById('qr-estado').textContent = '';
+  document.getElementById('modal-qr-asistencia').style.display = 'flex';
+}
+
+async function generarQr() {
+  const idActividad = document.getElementById('selector-actividad').value;
+  const idVoluntario = document.getElementById('selector-voluntario-qr').value;
+  if (!idVoluntario) {
+    alert('Selecciona un voluntario para generar su código.');
+    return;
+  }
+  const body = new URLSearchParams({id_voluntario: idVoluntario, id_actividad: idActividad});
+  try {
+    const data = await peticionJson(rutaGenerarQr, {method: 'POST', body});
+    const container = document.getElementById('qr-container');
+    container.replaceChildren();
+    new QRCode(container, {text: data.token, width: 220, height: 220, colorDark: '#0aafa0', colorLight: '#fff'});
+    document.getElementById('qr-estado').textContent = 'Código QR generado. El registro se confirmará al validar este token.';
+    cargarVoluntariosActividad(idActividad);
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
 function closeModal(modalId) {
   document.getElementById(modalId).style.display = 'none';
 }
-
-// Cerrar modal al hacer clic fuera
-document.addEventListener('click', function(event) {
-  const modal = event.target.closest('.modal');
-  if (modal && event.target === modal) {
-    modal.style.display = 'none';
-  }
-});
 </script>
-
-<!-- Cargar librería QR Code (CDN) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
 @endsection

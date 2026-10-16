@@ -39,7 +39,7 @@
 @endphp
 <nav class="sidebar">
   <div class="sidebar-logo">
-    <img src="./public/img/Mascota_Iski_1.jpeg" alt="Iskali" style="width:40px;height:40px;border-radius:50%;object-fit:cover;margin-bottom:8px">
+    <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Mascota_Iski_1.jpeg') }}" alt="Iskali" style="width:40px;height:40px;border-radius:50%;object-fit:cover;margin-bottom:8px">
     <span>Juventud Iskali</span>
     <small>Sistema Integral</small>
   </div>

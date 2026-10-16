@@ -21,7 +21,7 @@
 
         <div class="card-header">
           <h3>
-            <img src="./public/iconos/avatar_usuario.png" alt="Usuario" style="width:20px;height:20px;">
+            <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/avatar_usuario.png') }}" alt="Usuario" style="width:20px;height:20px;">
             Editar Usuario          </h3>
         </div>
 
@@ -171,7 +171,7 @@
                 ← Volver a la Lista
               </a>
               <button type="submit" class="btn btn-primary">
-                <img src="./public/iconos/aprobado_carpeta.png" alt="Guardar" style="width:16px;height:16px;">
+                <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/aprobado_carpeta.png') }}" alt="Guardar" style="width:16px;height:16px;">
                 Guardar Cambios              </button>
             </div>
 

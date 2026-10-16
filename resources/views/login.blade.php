@@ -45,7 +45,7 @@
 
     <img
       id="iski"
-      src="./public/img/Mascota_Iski_1.jpeg"
+      src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Mascota_Iski_1.jpeg') }}"
       alt="Iski, mascota de Fundación Iskali"
       title="¡Haz clic para hablar con Iski!"
       style="
@@ -54,7 +54,7 @@
         transition:transform 0.3s ease;
         filter:drop-shadow(0 4px 8px rgba(0,0,0,0.15));
       "
-      onclick="iskiHabla('El usuario hizo clic en ti, salúdalo con entusiasmo y dile que puede iniciarle sesión')"
+      onclick="iskiHabla()"
     >
   </div>
   <!-- ══ FIN KOALA ══ -->
@@ -134,32 +134,21 @@ function mostrarBurbuja(texto) {
   }, 4500);
 }
 
-async function iskiHabla(contexto) {
+function iskiHabla() {
   const img = document.getElementById('iski');
   img.style.transform = 'scale(1.1) rotate(-6deg)';
   setTimeout(function () { img.style.transform = 'scale(1)'; }, 350);
-  mostrarBurbuja('...');
-  try {
-    const res = await fetch('./iski_chat.php', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mensaje: contexto })
-    });
-    const data = await res.json();
-    mostrarBurbuja(data.respuesta || '¡Hola! Soy Iski 👋');
-  } catch (e) {
-    mostrarBurbuja('¡Hola! Soy Iski 👋');
-  }
+  mostrarBurbuja('¡Hola! Soy Iski 👋');
 }
 
 document.addEventListener('DOMContentLoaded', function () {
 
   setTimeout(function () {
-    iskiHabla('Saluda al usuario que acaba de abrir el login de Fundación Iskali. Sé breve y alegre.');
+    iskiHabla();
   }, 1000);
 
   document.getElementById('email')?.addEventListener('focus', function () {
-    iskiHabla('El usuario está escribiendo su correo, anímalo brevemente a continuar.');
+    iskiHabla();
   });
 
   document.getElementById('password')?.addEventListener('focus', function () {
@@ -167,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   document.getElementById('loginForm')?.addEventListener('submit', function () {
-    iskiHabla('El usuario está intentando iniciar sesión, deséale mucha suerte de manera simpática.');
+    iskiHabla();
   });
 
 });

@@ -44,7 +44,16 @@ class Usuario extends Authenticatable
 
     public function getAuthPassword(): string
     {
-        return $this->contrasena_hash;
+        $hash = (string) $this->contrasena_hash;
+
+        return str_starts_with($hash, '$2b$')
+            ? '$2y$'.substr($hash, 4)
+            : $hash;
+    }
+
+    public function getAuthPasswordName(): string
+    {
+        return 'contrasena_hash';
     }
 
     public function getRememberTokenName(): string

@@ -40,9 +40,7 @@
             </p>
           </div>
           <!-- RF005: filtro de fechas opcional (sobre fecha de registro). -->
-          <form method="GET" action="{{ route('reportes.index') }}">
-            <input type="hidden" name="pagina" value="reportes">
-            <input type="hidden" name="accion" value="generar">
+          <form method="GET" action="{{ route('reportes.generar') }}" target="_blank">
             <input type="hidden" name="tipo"   value="donadores">
             <div style="display:flex;gap:6px;">
               <input type="date" name="desde" title="Registrado desde" class="form-control" style="font-size:11.5px;padding:6px 8px;">
@@ -77,9 +75,7 @@
             </p>
           </div>
           <!-- RF005: filtro de fechas opcional (sobre fecha de registro). -->
-          <form method="GET" action="{{ route('reportes.index') }}">
-            <input type="hidden" name="pagina" value="reportes">
-            <input type="hidden" name="accion" value="generar">
+          <form method="GET" action="{{ route('reportes.generar') }}" target="_blank">
             <input type="hidden" name="tipo"   value="beneficiarios">
             <div style="display:flex;gap:6px;">
               <input type="date" name="desde" title="Registrado desde" class="form-control" style="font-size:11.5px;padding:6px 8px;">
@@ -112,9 +108,7 @@
             </p>
           </div>
           <!-- RF005: filtro de fechas opcional (sobre la fecha de inicio de la campaña). -->
-          <form method="GET" action="{{ route('reportes.index') }}">
-            <input type="hidden" name="pagina" value="reportes">
-            <input type="hidden" name="accion" value="generar">
+          <form method="GET" action="{{ route('reportes.generar') }}" target="_blank">
             <input type="hidden" name="tipo"   value="campanas">
             <div style="display:flex;gap:6px;">
               <input type="date" name="desde" title="Inicio de campaña desde" class="form-control" style="font-size:11.5px;padding:6px 8px;">

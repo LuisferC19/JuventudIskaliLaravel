@@ -46,7 +46,7 @@
             >
             @can('permiso', ['usuarios', 'crear'])
               <button class="btn btn-primary btn-icon" type="button" onclick="openModal('modal-crear-usuario')">
-             <img src="./public/iconos/nuevo.png" alt="Nuevo" style="width:16px;height:16px;">
+             <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/Nuevo.png') }}" alt="Nuevo" style="width:16px;height:16px;">
               Nuevo Usuario
               </button>
             @endcan
@@ -140,7 +140,7 @@
 
     <div class="modal-header">
       <h3>
-        <img src="./public/iconos/agregar_usuario_circulo.png" alt="Nuevo usuario" style="width:24px;height:24px;">
+        <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/agregar_usuario_circulo.png') }}" alt="Nuevo usuario" style="width:24px;height:24px;">
         Crear Nuevo Usuario
       </h3>
       <button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('modal-crear-usuario')">✕</button>
@@ -273,7 +273,7 @@
           Cancelar
         </button>
         <button type="submit" class="btn btn-primary">
-          <img src="./public/iconos/aprobado_carpeta.png" alt="Guardar" style="width:16px;height:16px;">
+          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/aprobado_carpeta.png') }}" alt="Guardar" style="width:16px;height:16px;">
           Guardar Usuario
         </button>
       </div>

@@ -18,7 +18,11 @@
 
   
   
-  <form method="POST" action="{{ route('registro') }}" id="registerForm">
+  @if (session('success'))
+    <div class="success-message" role="status">{{ session('success') }}</div>
+  @endif
+
+  <form method="POST" action="{{ route('registro.store') }}" id="registerForm">
     @csrf
     
     <div class="form-row">
@@ -50,6 +54,7 @@
     <div class="form-group">
       <label class="form-label" for="password_confirm">Confirmar contraseña</label>
       <input type="password" id="password_confirm" name="password_confirm" class="form-input" placeholder="Repite tu contraseña" required>
+      @error('password_confirm')<div class="error-message">{{ $message }}</div>@enderror
     </div>
 
     <button type="submit" class="btn-login">Solicitar acceso</button>
