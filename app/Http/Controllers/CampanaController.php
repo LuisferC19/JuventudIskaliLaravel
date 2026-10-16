@@ -5,12 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CambiarEstadoCampanaRequest;
 use App\Http\Requests\CampanaRequest;
 use App\Models\Campana;
-use App\Models\Notificacion;
-use App\Models\Usuario;
+use App\Services\NotificacionService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Throwable;
 
 class CampanaController extends Controller
 {
@@ -169,44 +167,6 @@ class CampanaController extends Controller
 
     private function notificarCampanaActiva(int $idCampana, string $nombre, string $fechaCierre): void
     {
-        try {
-            $idTipoReferencia = DB::table('tipos_referencia_notif')
-                ->where('nombre', 'campana')
-                ->value('id_tipo_ref');
-
-            if (! $idTipoReferencia) {
-                throw new \RuntimeException('No existe el tipo de referencia de notificación "campana".');
-            }
-
-            $mensaje = "La campaña {$nombre} está activa. Fecha de cierre: {$fechaCierre}.";
-            Usuario::where('activo', true)->pluck('id_usuario')->each(
-                function ($idUsuario) use ($idCampana, $idTipoReferencia, $nombre, $mensaje): void {
-                    try {
-                        Notificacion::create([
-                            'id_usuario' => $idUsuario,
-                            'tipo' => 'campana',
-                            'canal' => 'web',
-                            'asunto' => 'Nueva campaña activa',
-                            'mensaje' => $mensaje,
-                            'leida' => false,
-                            'id_referencia' => $idCampana,
-                            'id_tipo_referencia' => $idTipoReferencia,
-                        ]);
-                    } catch (Throwable $exception) {
-                        Log::error('No se pudo notificar la campaña activa a un usuario.', [
-                            'id_campana' => $idCampana,
-                            'id_usuario' => $idUsuario,
-                            'nombre_campana' => $nombre,
-                            'exception' => $exception,
-                        ]);
-                    }
-                }
-            );
-        } catch (Throwable $exception) {
-            Log::error('No se pudieron preparar las notificaciones de campaña activa.', [
-                'id_campana' => $idCampana,
-                'exception' => $exception,
-            ]);
-        }
+        app(NotificacionService::class)->campanaActiva($idCampana, $nombre, $fechaCierre);
     }
 }

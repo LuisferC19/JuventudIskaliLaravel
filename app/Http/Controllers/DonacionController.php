@@ -24,19 +24,27 @@ class DonacionController extends Controller
 
     public function index(Request $request): View
     {
+        $estadisticas = DB::table('donaciones')
+            ->selectRaw('COUNT(*) AS total')
+            ->selectRaw("SUM(CASE WHEN estado = 'pendiente' THEN 1 ELSE 0 END) AS pendientes")
+            ->selectRaw("SUM(CASE WHEN estado = 'recibida' THEN 1 ELSE 0 END) AS recibidas")
+            ->selectRaw("SUM(CASE WHEN estado = 'verificada' THEN 1 ELSE 0 END) AS verificadas")
+            ->first();
+
         $donaciones = DB::table('donaciones as d')
-            ->join('donadores as dn', 'dn.id_donador', '=', 'd.id_donador')
+            ->leftJoin('donadores as dn', 'dn.id_donador', '=', 'd.id_donador')
             ->leftJoin('donadores_fisicos as df', 'df.id_donador', '=', 'dn.id_donador')
             ->leftJoin('donadores_morales as dm', 'dm.id_donador', '=', 'dn.id_donador')
             ->leftJoin('donadores_grupos as dg', 'dg.id_donador', '=', 'dn.id_donador')
-            ->join('campanas as c', 'c.id_campana', '=', 'd.id_campana')
+            ->leftJoin('campanas as c', 'c.id_campana', '=', 'd.id_campana')
             ->leftJoin('usuarios as u', 'u.id_usuario', '=', 'd.id_usuario_registrador')
             ->leftJoin('donaciones_especie as de', 'de.id_donacion', '=', 'd.id_donacion')
             ->leftJoin('tipos_bien as tb', 'tb.id_tipo_bien', '=', 'de.id_tipo_bien')
             ->leftJoin('donaciones_economicas as deco', 'deco.id_donacion', '=', 'd.id_donacion')
-            ->select('d.id_donacion', 'd.fecha_recepcion', 'd.estado', 'd.evidencia_url', 'c.nombre as campana')
-            ->selectRaw("COALESCE(dm.razon_social, CONCAT(COALESCE(df.nombre, ''), ' ', COALESCE(df.apellido, '')), dg.nombre_grupo, 'Anónimo') AS donador")
-            ->selectRaw("CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, '')) AS registrado_por")
+            ->select('d.id_donacion', 'd.fecha_recepcion', 'd.estado', 'd.evidencia_url')
+            ->selectRaw("COALESCE(c.nombre, 'Campaña no disponible') AS campana")
+            ->selectRaw("CASE WHEN dn.id_donador IS NULL THEN 'Donador no disponible' ELSE COALESCE(NULLIF(dm.razon_social, ''), NULLIF(TRIM(CONCAT(COALESCE(df.nombre, ''), ' ', COALESCE(df.apellido, ''))), ''), NULLIF(dg.nombre_grupo, ''), 'Anónimo') END AS donador")
+            ->selectRaw("COALESCE(NULLIF(TRIM(CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, ''))), ''), 'Usuario no disponible') AS registrado_por")
             ->selectRaw("CASE WHEN de.id_donacion IS NULL THEN 'economica' ELSE 'especie' END AS tipo")
             ->selectRaw("COALESCE(tb.nombre, 'Donación económica') AS detalle")
             ->selectRaw('COALESCE(de.cantidad, deco.monto) AS cantidad_monto')
@@ -48,10 +56,10 @@ class DonacionController extends Controller
         return view('donaciones', [
             'donaciones' => $donaciones,
             'filtroEstado' => $request->input('estado', ''),
-            'totalDonaciones' => $donaciones->count(),
-            'donacionesPendientes' => $donaciones->where('estado', 'pendiente')->count(),
-            'donacionesRecibidas' => $donaciones->where('estado', 'recibida')->count(),
-            'donacionesVerificadas' => $donaciones->where('estado', 'verificada')->count(),
+            'totalDonaciones' => (int) $estadisticas->total,
+            'donacionesPendientes' => (int) $estadisticas->pendientes,
+            'donacionesRecibidas' => (int) $estadisticas->recibidas,
+            'donacionesVerificadas' => (int) $estadisticas->verificadas,
         ]);
     }
 
@@ -78,17 +86,18 @@ class DonacionController extends Controller
     public function show(string $donacion): View
     {
         $detalle = DB::table('donaciones as d')
-            ->join('donadores as dn', 'dn.id_donador', '=', 'd.id_donador')
+            ->leftJoin('donadores as dn', 'dn.id_donador', '=', 'd.id_donador')
             ->leftJoin('donadores_fisicos as df', 'df.id_donador', '=', 'dn.id_donador')
             ->leftJoin('donadores_morales as dm', 'dm.id_donador', '=', 'dn.id_donador')
             ->leftJoin('donadores_grupos as dg', 'dg.id_donador', '=', 'dn.id_donador')
-            ->join('campanas as c', 'c.id_campana', '=', 'd.id_campana')
+            ->leftJoin('campanas as c', 'c.id_campana', '=', 'd.id_campana')
             ->leftJoin('donaciones_especie as de', 'de.id_donacion', '=', 'd.id_donacion')
             ->leftJoin('tipos_bien as tb', 'tb.id_tipo_bien', '=', 'de.id_tipo_bien')
             ->leftJoin('donaciones_economicas as deco', 'deco.id_donacion', '=', 'd.id_donacion')
             ->where('d.id_donacion', $donacion)
-            ->select('d.*', 'c.nombre as campana', 'de.id_tipo_bien', 'de.descripcion', 'de.cantidad', 'de.unidad_medida', 'tb.nombre as tipo_bien', 'deco.monto', 'deco.moneda', 'deco.metodo_pago', 'deco.referencia_pago')
-            ->selectRaw("COALESCE(dm.razon_social, CONCAT(COALESCE(df.nombre, ''), ' ', COALESCE(df.apellido, '')), dg.nombre_grupo, 'Anónimo') AS donador")
+            ->select('d.*', 'de.id_tipo_bien', 'de.descripcion', 'de.cantidad', 'de.unidad_medida', 'tb.nombre as tipo_bien', 'deco.monto', 'deco.moneda', 'deco.metodo_pago', 'deco.referencia_pago')
+            ->selectRaw("COALESCE(c.nombre, 'Campaña no disponible') AS campana")
+            ->selectRaw("CASE WHEN dn.id_donador IS NULL THEN 'Donador no disponible' ELSE COALESCE(NULLIF(dm.razon_social, ''), NULLIF(TRIM(CONCAT(COALESCE(df.nombre, ''), ' ', COALESCE(df.apellido, ''))), ''), NULLIF(dg.nombre_grupo, ''), 'Anónimo') END AS donador")
             ->selectRaw("CASE WHEN de.id_donacion IS NULL THEN 'economica' ELSE 'especie' END AS tipo")
             ->first();
         abort_unless($detalle, 404);

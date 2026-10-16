@@ -165,27 +165,11 @@ class EntregaWorkflowService
                 return;
             }
 
-            $usuarios = DB::table('usuarios')
-                ->whereIn('id_rol', function ($query): void {
-                    $query->select('id_rol')->from('roles')->whereIn('nombre', ['Administrador', 'Coordinador']);
-                })
-                ->pluck('id_usuario');
-            $idTipoReferencia = DB::table('tipos_referencia_notif')->where('nombre', 'entrega')->value('id_tipo_ref');
-            foreach ($usuarios as $idUsuario) {
-                try {
-                    DB::table('notificaciones')->insert([
-                        'id_usuario' => $idUsuario,
-                        'tipo' => 'entrega',
-                        'canal' => 'web',
-                        'asunto' => 'Entrega completada',
-                        'mensaje' => 'Entrega a '.trim($detalle->beneficiario).' completada. Cantidad entregada: '.$detalle->cantidad_entregada.'.',
-                        'id_tipo_referencia' => $idTipoReferencia,
-                        'id_referencia' => $idEntrega,
-                    ]);
-                } catch (\Throwable $error) {
-                    Log::error('No se pudo notificar entrega completada.', ['id_usuario' => $idUsuario, 'error' => $error->getMessage()]);
-                }
-            }
+            app(NotificacionService::class)->entregaCompletada(
+                $idEntrega,
+                (string) $detalle->beneficiario,
+                (string) $detalle->cantidad_entregada
+            );
         } catch (\Throwable $error) {
             Log::error('No se pudo preparar notificación de entrega completada.', ['id_entrega' => $idEntrega, 'error' => $error->getMessage()]);
         }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\UsuarioRequest;
 use App\Models\Rol;
 use App\Models\Usuario;
+use App\Models\Voluntario;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -58,15 +59,19 @@ class UsuarioController extends Controller
     {
         $datos = $request->validated();
 
-        Usuario::create([
-            'id_rol' => $datos['id_rol'],
-            'nombre' => $datos['nombre'],
-            'apellido' => $datos['apellido'],
-            'email' => $datos['email'],
-            'contrasena_hash' => Hash::make($datos['password']),
-            'activo' => $request->boolean('activo'),
-            'intentos_fallidos' => 0,
-        ]);
+        DB::transaction(function () use ($datos, $request): void {
+            $usuario = Usuario::create([
+                'id_rol' => $datos['id_rol'],
+                'nombre' => $datos['nombre'],
+                'apellido' => $datos['apellido'],
+                'email' => $datos['email'],
+                'contrasena_hash' => Hash::make($datos['password']),
+                'activo' => $request->boolean('activo'),
+                'intentos_fallidos' => 0,
+            ]);
+
+            $this->provisionarPerfilVoluntario($usuario, (int) $datos['id_rol']);
+        });
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario creado correctamente.');
     }
@@ -95,7 +100,10 @@ class UsuarioController extends Controller
             $actualizacion['contrasena_hash'] = Hash::make($datos['password']);
         }
 
-        $usuario->update($actualizacion);
+        DB::transaction(function () use ($usuario, $actualizacion, $datos): void {
+            $usuario->update($actualizacion);
+            $this->provisionarPerfilVoluntario($usuario, (int) $datos['id_rol']);
+        });
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado correctamente.');
     }
@@ -187,5 +195,28 @@ class UsuarioController extends Controller
             ->where('v.id_usuario', $idUsuario)
             ->where('av.presente', true)
             ->exists();
+    }
+
+    private function provisionarPerfilVoluntario(Usuario $usuario, int $idRol): void
+    {
+        $esVoluntario = Rol::query()
+            ->whereKey($idRol)
+            ->where('nombre', 'Voluntario')
+            ->exists();
+
+        if (! $esVoluntario) {
+            return;
+        }
+
+        Voluntario::query()->firstOrCreate(
+            ['id_usuario' => $usuario->getKey()],
+            [
+                'telefono_contacto' => null,
+                'zona_asignada' => 'ambas',
+                'disponibilidad' => 'bajo_demanda',
+                'activo' => true,
+                'fecha_ingreso' => now()->toDateString(),
+            ]
+        );
     }
 }

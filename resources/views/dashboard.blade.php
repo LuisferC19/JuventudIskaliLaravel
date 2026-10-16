@@ -35,7 +35,7 @@
             <img src="./public/iconos/Total_dinero.png" alt="" style="width:16px;height:16px;">
             Total donado
           </div>
-          <div class="kpi-value">$84,200.00</div>
+          <div class="kpi-value">{{ $kpis['donaciones_total'] }}</div>
           <div class="kpi-sub">acumulado histórico</div>
         </div>
 
@@ -44,7 +44,7 @@
             <img src="./public/iconos/calendario.png" alt="" style="width:16px;height:16px;">
             Este mes
           </div>
-          <div class="kpi-value">$12,500.00</div>
+          <div class="kpi-value">{{ $kpis['donaciones_mes'] }}</div>
           <div class="kpi-sub">MXN donado</div>
         </div>
 
@@ -53,13 +53,13 @@
             <img src="./public/iconos/Beneficiarios.png" alt="" style="width:16px;height:16px;">
             Beneficiarios
           </div>
-          <div class="kpi-value">13</div>
+          <div class="kpi-value">{{ $kpis['beneficiarios'] }}</div>
           <div class="kpi-sub">activos registrados</div>
         </div>
 
         <div class="kpi">
           <div class="kpi-label">🚀 Campañas</div>
-          <div class="kpi-value">4</div>
+          <div class="kpi-value">{{ $kpis['campanas'] }}</div>
           <div class="kpi-sub">activas ahora</div>
         </div>
 
@@ -68,7 +68,7 @@
             <img src="./public/iconos/Entregas.png" alt="" style="width:16px;height:16px;">
             Entregas
           </div>
-          <div class="kpi-value">23</div>
+          <div class="kpi-value">{{ $kpis['entregas'] }}</div>
           <div class="kpi-sub">completadas</div>
         </div>
 
@@ -77,7 +77,7 @@
             <img src="./public/iconos/patrocinador.png" alt="" style="width:16px;height:16px;">
             Donadores
           </div>
-          <div class="kpi-value">19</div>
+          <div class="kpi-value">{{ $kpis['donadores'] }}</div>
           <div class="kpi-sub">registrados</div>
         </div>
 
@@ -86,7 +86,7 @@
             <img src="./public/iconos/Voluntarios.png" alt="" style="width:16px;height:16px;">
             Voluntarios
           </div>
-          <div class="kpi-value">8</div>
+          <div class="kpi-value">{{ $kpis['voluntarios'] }}</div>
           <div class="kpi-sub">activos</div>
         </div>
 
@@ -95,7 +95,7 @@
             <img src="./public/iconos/inventario.png" alt="" style="width:16px;height:16px;">
             Inventario
           </div>
-          <div class="kpi-value">128</div>
+          <div class="kpi-value">{{ $kpis['inventario'] }}</div>
           <div class="kpi-sub">tipos de bien</div>
         </div>
 
@@ -133,8 +133,9 @@
           <div class="card-header" style="margin-bottom:12px;">
             <h3 style="font-size:15px;font-weight:600;margin:0;">
               Donaciones por mes (MXN vs Especie)
-              <span class="badge badge-amber">DEMO</span>            </h3>
-            <span style="font-size:12px;color:var(--muted);">Año 2026</span>
+              @if ($charts['meses']['demo'])<span class="badge badge-amber">DEMO</span>@endif
+            </h3>
+            <span style="font-size:12px;color:var(--muted);">Año {{ $anio }}</span>
           </div>
           <div style="height:240px;position:relative;">
             <canvas id="chartBarMeses"></canvas>
@@ -146,7 +147,8 @@
           <div class="card-header" style="margin-bottom:12px;">
             <h3 style="font-size:15px;font-weight:600;margin:0;">
               Estado de donaciones
-              <span class="badge badge-amber">DEMO</span>            </h3>
+              @if ($charts['estados_donaciones']['demo'])<span class="badge badge-amber">DEMO</span>@endif
+            </h3>
           </div>
           <div style="height:185px;display:flex;align-items:center;justify-content:center;">
             <canvas id="chartPieEstados"></canvas>
@@ -164,7 +166,8 @@
         <div class="card" style="padding:1rem;">
           <h3 style="font-size:14px;font-weight:600;margin:0 0 14px;">
             Tipo de donación
-            <span class="badge badge-amber">DEMO</span>          </h3>
+            @if ($charts['tipos_donacion']['demo'])<span class="badge badge-amber">DEMO</span>@endif
+          </h3>
           <div style="height:175px;display:flex;align-items:center;justify-content:center;">
             <canvas id="chartPieTipo"></canvas>
           </div>
@@ -174,7 +177,8 @@
         <div class="card" style="padding:1rem;">
           <h3 style="font-size:14px;font-weight:600;margin:0 0 14px;">
             Beneficiarios
-            <span class="badge badge-amber">DEMO</span>          </h3>
+            @if ($charts['beneficiarios']['demo'])<span class="badge badge-amber">DEMO</span>@endif
+          </h3>
           <div style="height:175px;display:flex;align-items:center;justify-content:center;">
             <canvas id="chartDonutBenef"></canvas>
           </div>
@@ -184,73 +188,26 @@
         <div class="card" style="padding:1rem;">
           <h3 style="font-size:14px;font-weight:600;margin:0 0 14px;">Campañas activas</h3>
           <div class="progress-wrap">
-                          <div class="prog-item">
-                <div class="prog-label">
-                  <span style="font-size:12px;">Abrigo Invierno</span>
-                  <span style="color:var(--accent,#0aafa0);font-size:12px;font-weight:600;">72%</span>
-                </div>
-                <div class="prog-bar">
-                  <div class="prog-fill" style="width:72%;background:var(--primary)"></div>
-                </div>
+          @foreach ($campanas_activas as $campana)
+            <div class="prog-item">
+              <div class="prog-label">
+                <span style="font-size:12px;">{{ $campana['nombre'] }}</span>
+                <span style="color:var(--accent,#0aafa0);font-size:12px;font-weight:600;">{{ $campana['pct'] }}%</span>
               </div>
-                          <div class="prog-item">
-                <div class="prog-label">
-                  <span style="font-size:12px;">Juguetes Navidad</span>
-                  <span style="color:var(--accent,#0aafa0);font-size:12px;font-weight:600;">45%</span>
-                </div>
-                <div class="prog-bar">
-                  <div class="prog-fill" style="width:45%;background:var(--amber)"></div>
-                </div>
+              <div class="prog-bar">
+                <div class="prog-fill" style="width:{{ $campana['pct'] }}%;background:{{ $campana['color'] }}"></div>
               </div>
-                          <div class="prog-item">
-                <div class="prog-label">
-                  <span style="font-size:12px;">Empleo Joven</span>
-                  <span style="color:var(--accent,#0aafa0);font-size:12px;font-weight:600;">18%</span>
-                </div>
-                <div class="prog-bar">
-                  <div class="prog-fill" style="width:18%;background:#3b6fd4"></div>
-                </div>
-              </div>
-                          <div class="prog-item">
-                <div class="prog-label">
-                  <span style="font-size:12px;">Medicina Todos</span>
-                  <span style="color:var(--accent,#0aafa0);font-size:12px;font-weight:600;">8%</span>
-                </div>
-                <div class="prog-bar">
-                  <div class="prog-fill" style="width:8%;background:var(--danger)"></div>
-                </div>
-              </div>
+            </div>
+          @endforeach
                       </div>
         </div>
 
         <!-- Actividad reciente -->
         <div class="card" style="padding:1rem;">
           <h3 style="font-size:14px;font-weight:600;margin:0 0 14px;">Actividad reciente</h3>
-                      <div class="activity-item">
-              <div class="activity-dot" style="background:#1A7A5E"></div>
-              <div class="activity-text" style="font-size:12px;">Donación registrada</div>
-              <div class="activity-time">5 min</div>
-            </div>
-                      <div class="activity-item">
-              <div class="activity-dot" style="background:#3B6FD4"></div>
-              <div class="activity-text" style="font-size:12px;">Entrega completada #142</div>
-              <div class="activity-time">1 h</div>
-            </div>
-                      <div class="activity-item">
-              <div class="activity-dot" style="background:#1A7A5E"></div>
-              <div class="activity-text" style="font-size:12px;">Nuevo beneficiario</div>
-              <div class="activity-time">2 h</div>
-            </div>
-                      <div class="activity-item">
-              <div class="activity-dot" style="background:#C68B0A"></div>
-              <div class="activity-text" style="font-size:12px;">Stock bajo — Medicamentos</div>
-              <div class="activity-time">3 h</div>
-            </div>
-                      <div class="activity-item">
-              <div class="activity-dot" style="background:#993556"></div>
-              <div class="activity-text" style="font-size:12px;">Nuevo donador registrado</div>
-              <div class="activity-time">5 h</div>
-            </div>
+          <div class="activity-item">
+            <div class="activity-text" style="font-size:12px;">Los indicadores se actualizan con los datos registrados en el sistema.</div>
+          </div>
                   </div>
 
       </div>
@@ -265,7 +222,8 @@
               <img src="./public/iconos/patrocinador.png" alt=""
                    style="width:16px;height:16px;vertical-align:middle;margin-right:6px;">
               Tipos de donador
-              <span class="badge badge-amber">DEMO</span>            </h3>
+              @if ($charts['donadores']['demo'])<span class="badge badge-amber">DEMO</span>@endif
+            </h3>
           </div>
           <div style="height:200px;position:relative;">
             <canvas id="chartDonadorTipo"></canvas>
@@ -279,7 +237,8 @@
               <img src="./public/iconos/Usuarios.png" alt=""
                    style="width:16px;height:16px;vertical-align:middle;margin-right:6px;">
               Usuarios por rol
-              <span class="badge badge-amber">DEMO</span>            </h3>
+              @if ($charts['roles']['demo'])<span class="badge badge-amber">DEMO</span>@endif
+            </h3>
           </div>
           <div style="height:200px;position:relative;">
             <canvas id="chartRolUsuarios"></canvas>
@@ -317,18 +276,18 @@
   new Chart(document.getElementById('chartBarMeses'), {
     type: 'bar',
     data: {
-      labels:   ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+      labels:   @json($charts['meses']['labels']),
       datasets: [
         {
           label: 'MXN',
-          data:  [0,0,5200,18000,25000,42000,0,0,0,0,0,0],
+          data:  @json($charts['meses']['montos']),
           backgroundColor: colVerde + 'cc',
           borderRadius: 5,
           borderSkipped: false,
         },
         {
           label: 'Especie (unidades)',
-          data:  [0,0,10,25,15,30,0,0,0,0,0,0],
+          data:  @json($charts['meses']['especie']),
           backgroundColor: colAmber + 'aa',
           borderRadius: 5,
           borderSkipped: false,
@@ -352,8 +311,8 @@
   /* ══════════════════════════════════════════════════
      2. PASTEL — Estado de donaciones
   ══════════════════════════════════════════════════ */
-  const labEstados = ["Verificada","Recibida","Pendiente","Rechazada"];
-  const datEstados = [9,4,1,1];
+  const labEstados = @json($charts['estados_donaciones']['labels']);
+  const datEstados = @json($charts['estados_donaciones']['data']);
   const colsEstados = [colVerde, colAmber, colBlue, colRed];
 
   new Chart(document.getElementById('chartPieEstados'), {
@@ -392,9 +351,9 @@
   new Chart(document.getElementById('chartPieTipo'), {
     type: 'doughnut',
     data: {
-      labels: ["Econ\u00f3mica","En especie"],
+      labels: @json($charts['tipos_donacion']['labels']),
       datasets: [{
-        data: [6,9],
+        data: @json($charts['tipos_donacion']['data']),
         backgroundColor: [colBlue, colVerde],
         borderWidth: 2,
         borderColor: '#FFFFFF'
@@ -416,9 +375,9 @@
   new Chart(document.getElementById('chartDonutBenef'), {
     type: 'doughnut',
     data: {
-      labels: ["Activos","En espera","Inactivos"],
+      labels: @json($charts['beneficiarios']['labels']),
       datasets: [{
-        data: [13,3,2],
+        data: @json($charts['beneficiarios']['data']),
         backgroundColor: [colVerde, colAmber, colGray],
         borderWidth: 2,
         borderColor: '#FFFFFF'
@@ -440,10 +399,10 @@
   new Chart(document.getElementById('chartDonadorTipo'), {
     type: 'bar',
     data: {
-      labels: ["An\u00f3nimo","Persona","Grupo","Organizaci\u00f3n"],
+      labels: @json($charts['donadores']['labels']),
       datasets: [{
         label: 'Donadores',
-        data:  [2,8,3,5],
+        data:  @json($charts['donadores']['data']),
         backgroundColor: [colGray, colVerde, colBlue, colPurple],
         borderRadius: 5,
         borderSkipped: false,
@@ -468,8 +427,8 @@
   /* ══════════════════════════════════════════════════
      6. BARRAS HORIZONTALES — Usuarios por rol
   ══════════════════════════════════════════════════ */
-  const rolLabels = ["Administrador","Coordinador","Voluntario","Donador","Inventarista","Auditor","Comunicaci\u00f3n"];
-  const rolData   = [2,1,4,6,1,1,1];
+  const rolLabels = @json($charts['roles']['labels']);
+  const rolData   = @json($charts['roles']['data']);
 
   // Paleta de colores según posición
   const rolColors = [colVerde, colBlue, colAmber, colPurple, colRed, colGray,

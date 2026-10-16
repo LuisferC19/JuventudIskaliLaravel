@@ -196,12 +196,10 @@ class DonacionWorkflowService
                 return;
             }
 
-            $this->notificarAdministradores(
-                'donacion',
-                'Nueva donación registrada',
-                'Donación de '.trim($detalle->donador).' para la campaña '.$detalle->campana.'.',
-                'donacion',
-                $idDonacion
+            app(NotificacionService::class)->donacionNueva(
+                $idDonacion,
+                (string) $detalle->donador,
+                (string) $detalle->campana
             );
         } catch (\Throwable $error) {
             Log::error('No se pudo notificar nueva donación.', ['id_donacion' => $idDonacion, 'error' => $error->getMessage()]);
@@ -219,47 +217,14 @@ class DonacionWorkflowService
             if (!$detalle || !$detalle->id_usuario_registrador) {
                 return;
             }
-            $this->crearNotificacion(
+            app(NotificacionService::class)->donacionVerificada(
                 (int) $detalle->id_usuario_registrador,
-                'donacion',
-                'Tu donación fue verificada',
-                'La donación para la campaña '.$detalle->campana.' fue verificada y ya puede generarse una entrega con ella.',
-                'donacion',
-                $idDonacion
+                $idDonacion,
+                (string) $detalle->campana
             );
         } catch (\Throwable $error) {
             Log::error('No se pudo notificar donación verificada.', ['id_donacion' => $idDonacion, 'error' => $error->getMessage()]);
         }
     }
 
-    private function notificarAdministradores(string $tipo, string $asunto, string $mensaje, string $referencia, int $idReferencia): void
-    {
-        $usuarios = DB::table('usuarios')
-            ->whereIn('id_rol', function ($query): void {
-                $query->select('id_rol')->from('roles')->whereIn('nombre', ['Administrador', 'Coordinador']);
-            })
-            ->pluck('id_usuario');
-
-        foreach ($usuarios as $idUsuario) {
-            try {
-                $this->crearNotificacion((int) $idUsuario, $tipo, $asunto, $mensaje, $referencia, $idReferencia);
-            } catch (\Throwable $error) {
-                Log::error('No se pudo guardar notificación.', ['id_usuario' => $idUsuario, 'error' => $error->getMessage()]);
-            }
-        }
-    }
-
-    private function crearNotificacion(int $idUsuario, string $tipo, string $asunto, string $mensaje, string $referencia, int $idReferencia): void
-    {
-        $idTipoReferencia = DB::table('tipos_referencia_notif')->where('nombre', $referencia)->value('id_tipo_ref');
-        DB::table('notificaciones')->insert([
-            'id_usuario' => $idUsuario,
-            'tipo' => $tipo,
-            'canal' => 'web',
-            'asunto' => $asunto,
-            'mensaje' => $mensaje,
-            'id_referencia' => $idReferencia,
-            'id_tipo_referencia' => $idTipoReferencia,
-        ]);
-    }
 }

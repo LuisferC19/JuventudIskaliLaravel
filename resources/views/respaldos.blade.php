@@ -20,6 +20,9 @@
           El historial de todas las operaciones queda registrado automáticamente.
         </p>
       </div>
+      @error('backup_file')
+        <div class="alert alert-danger" role="alert">{{ $message }}</div>
+      @enderror
 
       <!-- ══ Tarjetas de información ══ -->
       <div class="kpi-grid">
@@ -27,17 +30,17 @@
         <div class="kpi">
           <div class="kpi-label">Operaciones registradas</div>
           <div class="kpi-value">
-            3          </div>
+            {{ count($historial) }}
         </div>
 
         <div class="kpi amber">
           <div class="kpi-label">Base de datos</div>
-          <div class="kpi-value" style="font-size:16px;">iskali</div>
+          <div class="kpi-value" style="font-size:16px;">{{ $baseDatos ?: '—' }}</div>
         </div>
 
         <div class="kpi blue">
           <div class="kpi-label">Formato</div>
-          <div class="kpi-value" style="font-size:16px;">ZIP comprimido</div>
+          <div class="kpi-value" style="font-size:16px;">ZIP privado</div>
         </div>
 
         <div class="kpi danger">
@@ -57,7 +60,7 @@
         <div class="card-body toolbar" style="padding:16px;">
 
           <!-- Botón exportar -->
-          <form method="POST" action="#">
+          <form method="POST" action="{{ url('/respaldos/generar') }}">
             @csrf
             <button type="submit" class="btn btn-primary">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" style="width:18px;height:18px;">
@@ -68,7 +71,7 @@
           </form>
 
           <!-- Botón importar -->
-          <form method="POST" action="#" enctype="multipart/form-data">
+          <form method="POST" action="{{ url('/respaldos/importar') }}" id="form-importar" enctype="multipart/form-data">
             @csrf
             <input type="file"
                    name="backup_file"
@@ -114,97 +117,21 @@
                 </tr>
               </thead>
               <tbody>
-                                  <tr style="border-bottom:1px solid var(--border,#c8efeb);">
-                    <td style="padding:11px 16px;color:var(--muted,#5a8a84);">1</td>
-
-                    <td style="padding:11px 16px;">
-                                              <span class="badge badge-amber">
-                          IMPORTACIÓN
-                        </span>
-                                          </td>
-
-                    <td style="padding:11px 16px;">
-                      <code>
-                        SQL                      </code>
-                    </td>
-
-                    <td style="padding:11px 16px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                      respaldo_20260928_020000.sql                    </td>
-
-                    <td style="padding:11px 16px;" class="bytes-cell" data-bytes="76022">
-                      74.2 KB
-                    </td>
-
-                    <td style="padding:11px 16px;">
-                      Sistema (automático)                    </td>
-
-                    <td style="padding:11px 16px;white-space:nowrap;color:var(--muted,#5a8a84);">
-                      2026-09-28 02:00:00                    </td>
-
-                    <td style="padding:11px 16px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="Respaldo automático diario">
-                      Respaldo automático diario                    </td>
+                @forelse ($historial as $respaldo)
+                  <tr style="border-bottom:1px solid var(--border,#c8efeb);">
+                    <td style="padding:11px 16px;color:var(--muted,#5a8a84);">{{ $respaldo['id'] }}</td>
+                    <td style="padding:11px 16px;"><span class="badge badge-amber">{{ $respaldo['tipo_operacion'] }}</span></td>
+                    <td style="padding:11px 16px;"><code>{{ $respaldo['formato'] }}</code></td>
+                    <td style="padding:11px 16px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $respaldo['nombre_archivo'] }}</td>
+                    <td style="padding:11px 16px;" class="bytes-cell" data-bytes="{{ $respaldo['tamanio_bytes'] }}">{{ $respaldo['tamanio_bytes'] }}</td>
+                    <td style="padding:11px 16px;">{{ trim(($respaldo['nombre_usuario'] ?? '').' '.($respaldo['apellido_usuario'] ?? '')) ?: 'Sistema' }}</td>
+                    <td style="padding:11px 16px;white-space:nowrap;color:var(--muted,#5a8a84);">{{ $respaldo['fechayhora'] }}</td>
+                    <td style="padding:11px 16px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ $respaldo['observaciones'] }}">{{ $respaldo['observaciones'] }}</td>
                   </tr>
-                                  <tr style="border-bottom:1px solid var(--border,#c8efeb);background:rgba(10,175,160,0.03);">
-                    <td style="padding:11px 16px;color:var(--muted,#5a8a84);">2</td>
-
-                    <td style="padding:11px 16px;">
-                                              <span class="badge badge-amber">
-                          IMPORTACIÓN
-                        </span>
-                                          </td>
-
-                    <td style="padding:11px 16px;">
-                      <code>
-                        SQL                      </code>
-                    </td>
-
-                    <td style="padding:11px 16px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                      respaldo_20260921_020000.sql                    </td>
-
-                    <td style="padding:11px 16px;" class="bytes-cell" data-bytes="74890">
-                      73.1 KB
-                    </td>
-
-                    <td style="padding:11px 16px;">
-                      Sistema (automático)                    </td>
-
-                    <td style="padding:11px 16px;white-space:nowrap;color:var(--muted,#5a8a84);">
-                      2026-09-21 02:00:00                    </td>
-
-                    <td style="padding:11px 16px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="Respaldo automático diario">
-                      Respaldo automático diario                    </td>
-                  </tr>
-                                  <tr style="border-bottom:1px solid var(--border,#c8efeb);">
-                    <td style="padding:11px 16px;color:var(--muted,#5a8a84);">3</td>
-
-                    <td style="padding:11px 16px;">
-                                              <span class="badge badge-amber">
-                          IMPORTACIÓN
-                        </span>
-                                          </td>
-
-                    <td style="padding:11px 16px;">
-                      <code>
-                        SQL                      </code>
-                    </td>
-
-                    <td style="padding:11px 16px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                      respaldo_20260519_133016.sql                    </td>
-
-                    <td style="padding:11px 16px;" class="bytes-cell" data-bytes="76022">
-                      74.2 KB
-                    </td>
-
-                    <td style="padding:11px 16px;">
-                      Eva Sánchez                    </td>
-
-                    <td style="padding:11px 16px;white-space:nowrap;color:var(--muted,#5a8a84);">
-                      2026-05-19 13:30:16                    </td>
-
-                    <td style="padding:11px 16px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="Importación manual de prueba">
-                      Importación manual de prueba                    </td>
-                  </tr>
-                              </tbody>
+                @empty
+                  <tr><td colspan="8" style="padding:16px;text-align:center;color:var(--muted);">Aún no hay operaciones de respaldo.</td></tr>
+                @endforelse
+              </tbody>
             </table>
           
         </div>

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\VerificarPermiso;
 use App\Models\Usuario;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -54,6 +55,25 @@ class PhaseOneCrudTest extends TestCase
         $usuario = Usuario::where('email', 'maria@example.test')->firstOrFail();
         $this->assertTrue(Hash::check('secret2', $usuario->contrasena_hash));
         $this->assertSame(0, $usuario->intentos_fallidos);
+    }
+
+    public function test_login_rehashea_contrasena_en_la_columna_personalizada(): void
+    {
+        Auth::logout();
+        $hashAnterior = password_hash('secret1', PASSWORD_BCRYPT, ['cost' => 4]);
+        Hash::driver('bcrypt')->setRounds(5);
+        $this->administrador->update(['contrasena_hash' => $hashAnterior]);
+
+        $this->assertTrue(Auth::attempt([
+            'email' => $this->administrador->email,
+            'password' => 'secret1',
+            'activo' => 1,
+        ]));
+
+        $hashActualizado = $this->administrador->fresh()->contrasena_hash;
+        $this->assertNotSame($hashAnterior, $hashActualizado);
+        $this->assertTrue(Hash::check('secret1', $hashActualizado));
+        $this->assertSame('contrasena_hash', $this->administrador->getAuthPasswordName());
     }
 
     public function test_usuario_edicion_sin_nueva_contrasena_conserva_el_hash_actual(): void

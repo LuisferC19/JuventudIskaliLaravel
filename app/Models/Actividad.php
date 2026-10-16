@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Actividad extends Model
 {
@@ -11,6 +12,7 @@ class Actividad extends Model
     protected $primaryKey = 'id_actividad';
 
     public $timestamps = false;
+
     protected $fillable = [
         'titulo',
         'descripcion',
@@ -29,5 +31,10 @@ class Actividad extends Model
             'fecha_fin' => 'datetime',
             'creado_en' => 'datetime',
         ];
+    }
+
+    public function responsable(): BelongsTo
+    {
+        return $this->belongsTo(Usuario::class, 'id_responsable', 'id_usuario');
     }
 }

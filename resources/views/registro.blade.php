@@ -18,25 +18,29 @@
 
   
   
-  <form method="POST" action="{{ route('registro') }}" id="registerForm">
+  @if (session('success'))
+    <div class="alert alert-success" role="status">{{ session('success') }}</div>
+  @endif
+
+  <form method="POST" action="{{ url('/registro') }}" id="registerForm">
     @csrf
     
     <div class="form-row">
       <div class="form-group">
         <label class="form-label" for="nombre">Nombre(s)</label>
-        <input type="text" id="nombre" name="nombre" class="form-input" value="{{ old('nombre') }}" placeholder="Ana" required>
+        <input type="text" id="nombre" name="nombre" class="form-input" value="{{ old('nombre') }}" placeholder="Ana" maxlength="100" required>
         @error('nombre')<div class="error-message">{{ $message }}</div>@enderror
       </div>
       <div class="form-group">
         <label class="form-label" for="apellido">Apellido(s)</label>
-        <input type="text" id="apellido" name="apellido" class="form-input" value="{{ old('apellido') }}" placeholder="García" required>
+        <input type="text" id="apellido" name="apellido" class="form-input" value="{{ old('apellido') }}" placeholder="García" maxlength="100" required>
         @error('apellido')<div class="error-message">{{ $message }}</div>@enderror
       </div>
     </div>
 
     <div class="form-group">
       <label class="form-label" for="email">Correo Electrónico</label>
-      <input type="email" id="email" name="email" class="form-input" value="{{ old('email') }}" placeholder="tu@correo.com" required>
+      <input type="email" id="email" name="email" class="form-input" value="{{ old('email') }}" placeholder="tu@correo.com" maxlength="150" required>
       @error('email')<div class="error-message">{{ $message }}</div>@enderror
     </div>
 
@@ -50,6 +54,7 @@
     <div class="form-group">
       <label class="form-label" for="password_confirm">Confirmar contraseña</label>
       <input type="password" id="password_confirm" name="password_confirm" class="form-input" placeholder="Repite tu contraseña" required>
+      @error('password_confirm')<div class="error-message">{{ $message }}</div>@enderror
     </div>
 
     <button type="submit" class="btn-login">Solicitar acceso</button>
