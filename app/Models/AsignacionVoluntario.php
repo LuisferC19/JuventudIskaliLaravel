@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AsignacionVoluntario extends Model
 {
@@ -29,5 +30,20 @@ class AsignacionVoluntario extends Model
             'fecha_compromiso' => 'datetime',
             'fecha_actualizacion' => 'datetime',
         ];
+    }
+
+    public function voluntario(): BelongsTo
+    {
+        return $this->belongsTo(Voluntario::class, 'id_voluntario', 'id_voluntario');
+    }
+
+    public function entrega(): BelongsTo
+    {
+        return $this->belongsTo(Entrega::class, 'id_entrega', 'id_entrega');
+    }
+
+    public function asignador(): BelongsTo
+    {
+        return $this->belongsTo(Usuario::class, 'id_usuario_asignador', 'id_usuario');
     }
 }

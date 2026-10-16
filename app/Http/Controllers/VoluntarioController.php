@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AsignacionVoluntarioRequest;
+use App\Services\VoluntarioWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -71,9 +73,44 @@ class VoluntarioController extends Controller
     {
         abort_unless(DB::table('voluntarios')->where('id_voluntario', $voluntario)->exists(), 404);
         $datos = $this->validarPerfil($request, $voluntario);
+        $datos['activo'] = $request->boolean('activo');
         DB::table('voluntarios')->where('id_voluntario', $voluntario)->update($datos);
 
         return redirect()->route('voluntarios.index')->with('success', 'Voluntario actualizado correctamente.');
+    }
+
+    public function destroy(int $voluntario): RedirectResponse
+    {
+        $actualizado = DB::table('voluntarios')
+            ->where('id_voluntario', $voluntario)
+            ->update(['activo' => false]);
+        abort_unless($actualizado > 0, 404);
+
+        return redirect()->route('voluntarios.index')->with('success', 'Voluntario desactivado correctamente.');
+    }
+
+    public function storeAsignacion(AsignacionVoluntarioRequest $request): RedirectResponse
+    {
+        app(VoluntarioWorkflowService::class)->crearAsignacion(
+            $request->validated(),
+            (int) $request->user()->id_usuario
+        );
+
+        return redirect()->route('voluntarios.index')->with('success', 'Asignación registrada correctamente.');
+    }
+
+    public function updateAsignacion(AsignacionVoluntarioRequest $request, int $asignacion): RedirectResponse
+    {
+        app(VoluntarioWorkflowService::class)->actualizarAsignacion($asignacion, $request->validated());
+
+        return redirect()->route('voluntarios.index')->with('success', 'Asignación actualizada correctamente.');
+    }
+
+    public function destroyAsignacion(int $asignacion): RedirectResponse
+    {
+        app(VoluntarioWorkflowService::class)->eliminarAsignacion($asignacion);
+
+        return redirect()->route('voluntarios.index')->with('success', 'Asignación eliminada correctamente.');
     }
 
     public function asistencia(int $actividad): JsonResponse
@@ -161,8 +198,15 @@ class VoluntarioController extends Controller
         return response()->json(['success' => true, 'message' => 'Asistencia registrada correctamente.']);
     }
 
-    public function generarQr(Request $request): JsonResponse
+    public function generarQr(Request $request, ?int $actividad = null): JsonResponse
     {
+        if ($actividad !== null) {
+            return response()->json([
+                'success' => true,
+                'tokens' => app(VoluntarioWorkflowService::class)->generarTokens($actividad),
+            ]);
+        }
+
         $datos = $request->validate([
             'id_voluntario' => ['required', 'integer', 'exists:voluntarios,id_voluntario'],
             'id_actividad' => ['required', 'integer', 'exists:actividades,id_actividad'],
@@ -220,18 +264,24 @@ class VoluntarioController extends Controller
         $datos = $request->validate([
             'token_qr' => ['required', 'string', 'size:64'],
         ]);
-        $registrado = DB::table('asistencia_voluntarios')
-            ->where('token_qr', $datos['token_qr'])
-            ->where('presente', false)
-            ->update(['presente' => true]);
+        $registrado = app(VoluntarioWorkflowService::class)->validarToken($datos['token_qr']);
 
-        if ($registrado === 0) {
-            throw ValidationException::withMessages([
-                'token_qr' => 'El código QR no es válido o ya fue utilizado.',
-            ]);
+        if (! $registrado) {
+            return response()->json([
+                'success' => false,
+                'error' => 'El código QR no es válido o ya fue utilizado.',
+            ], 422);
         }
 
         return response()->json(['success' => true, 'message' => 'Asistencia confirmada por QR.']);
+    }
+
+    public function generarQrActividad(int $actividad): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'tokens' => app(VoluntarioWorkflowService::class)->generarTokens($actividad),
+        ]);
     }
 
     private function usuariosDisponibles(?int $idActual = null): \Illuminate\Support\Collection

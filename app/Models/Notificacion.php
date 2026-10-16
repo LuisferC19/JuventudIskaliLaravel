@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Notificacion extends Model
 {
@@ -11,6 +12,7 @@ class Notificacion extends Model
     protected $primaryKey = 'id_notificacion';
 
     public $timestamps = false;
+
     protected $fillable = [
         'id_usuario',
         'destinatario_email',
@@ -32,5 +34,10 @@ class Notificacion extends Model
             'leida' => 'boolean',
             'fecha_envio' => 'datetime',
         ];
+    }
+
+    public function usuario(): BelongsTo
+    {
+        return $this->belongsTo(Usuario::class, 'id_usuario', 'id_usuario');
     }
 }

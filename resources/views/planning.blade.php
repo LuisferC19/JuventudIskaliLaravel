@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Planning | Juventud Iskali')
-@section('page-title', 'Planning')
+@section('page-title', 'Planning & Actividades')
 @section('content')
 
 @php

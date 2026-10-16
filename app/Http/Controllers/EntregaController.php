@@ -119,25 +119,26 @@ class EntregaController extends Controller
     private function entregasQuery()
     {
         return DB::table('entregas as e')
-            ->join('donaciones as d', 'd.id_donacion', '=', 'e.id_donacion')
-            ->join('donadores as dn', 'dn.id_donador', '=', 'd.id_donador')
+            ->leftJoin('donaciones as d', 'd.id_donacion', '=', 'e.id_donacion')
+            ->leftJoin('donadores as dn', 'dn.id_donador', '=', 'd.id_donador')
             ->leftJoin('donadores_fisicos as df', 'df.id_donador', '=', 'dn.id_donador')
             ->leftJoin('donadores_morales as dm', 'dm.id_donador', '=', 'dn.id_donador')
             ->leftJoin('donadores_grupos as dg', 'dg.id_donador', '=', 'dn.id_donador')
-            ->join('campanas as c', 'c.id_campana', '=', 'd.id_campana')
-            ->join('beneficiarios as b', 'b.id_beneficiario', '=', 'e.id_beneficiario')
+            ->leftJoin('campanas as c', 'c.id_campana', '=', 'd.id_campana')
+            ->leftJoin('beneficiarios as b', 'b.id_beneficiario', '=', 'e.id_beneficiario')
             ->leftJoin('beneficiarios_fisicos as bf', 'bf.id_beneficiario', '=', 'b.id_beneficiario')
             ->leftJoin('beneficiarios_morales as bm', 'bm.id_beneficiario', '=', 'b.id_beneficiario')
             ->leftJoin('usuarios as u', 'u.id_usuario', '=', 'e.id_usuario_responsable')
             ->leftJoin('donaciones_especie as de', 'de.id_donacion', '=', 'd.id_donacion')
             ->leftJoin('tipos_bien as tb', 'tb.id_tipo_bien', '=', 'de.id_tipo_bien')
             ->leftJoin('donaciones_economicas as deco', 'deco.id_donacion', '=', 'd.id_donacion')
-            ->select('e.*', 'd.estado as estado_donacion', 'd.fecha_recepcion', 'c.nombre as campana', 'tb.nombre as tipo_bien')
-            ->selectRaw("COALESCE(dm.razon_social, CONCAT(COALESCE(df.nombre, ''), ' ', COALESCE(df.apellido, '')), dg.nombre_grupo, 'Anónimo') AS donador")
-            ->selectRaw("COALESCE(bm.razon_social, CONCAT(COALESCE(bf.nombre, ''), ' ', COALESCE(bf.apellido, ''))) AS beneficiario")
-            ->selectRaw("CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, '')) AS responsable")
+            ->select('e.*', 'd.estado as estado_donacion', 'd.fecha_recepcion', 'tb.nombre as tipo_bien')
+            ->selectRaw("COALESCE(c.nombre, 'Campaña no disponible') AS campana")
+            ->selectRaw("CASE WHEN dn.id_donador IS NULL THEN 'Donador no disponible' ELSE COALESCE(NULLIF(dm.razon_social, ''), NULLIF(TRIM(CONCAT(COALESCE(df.nombre, ''), ' ', COALESCE(df.apellido, ''))), ''), NULLIF(dg.nombre_grupo, ''), 'Anónimo') END AS donador")
+            ->selectRaw("CASE WHEN b.id_beneficiario IS NULL THEN 'Beneficiario no disponible' ELSE COALESCE(NULLIF(bm.razon_social, ''), NULLIF(TRIM(CONCAT(COALESCE(bf.nombre, ''), ' ', COALESCE(bf.apellido, ''))), ''), 'Beneficiario sin nombre') END AS beneficiario")
+            ->selectRaw("COALESCE(NULLIF(TRIM(CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, ''))), ''), 'Usuario no disponible') AS responsable")
             ->selectRaw("COALESCE(de.unidad_medida, deco.moneda) AS unidad_medida")
-            ->selectRaw("COALESCE(tb.nombre, 'Donación económica') AS tipo_donacion");
+            ->selectRaw("CASE WHEN de.id_donacion IS NOT NULL THEN COALESCE(tb.nombre, 'Tipo de bien no disponible') WHEN deco.id_donacion IS NOT NULL THEN 'Donación económica' ELSE 'Tipo de donación no disponible' END AS tipo_donacion");
     }
 
     private function formOptions(?int $idBeneficiario = null): array

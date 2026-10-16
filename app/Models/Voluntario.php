@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Voluntario extends Model
 {
@@ -31,5 +33,20 @@ class Voluntario extends Model
             'fecha_ingreso' => 'date',
             'created_at' => 'datetime',
         ];
+    }
+
+    public function usuario(): BelongsTo
+    {
+        return $this->belongsTo(Usuario::class, 'id_usuario', 'id_usuario');
+    }
+
+    public function asignaciones(): HasMany
+    {
+        return $this->hasMany(AsignacionVoluntario::class, 'id_voluntario', 'id_voluntario');
+    }
+
+    public function asistencias(): HasMany
+    {
+        return $this->hasMany(AsistenciaVoluntario::class, 'id_voluntario', 'id_voluntario');
     }
 }

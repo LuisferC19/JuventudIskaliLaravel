@@ -11,14 +11,18 @@
       </svg>
     </div>
     <h1 class="login-title">Recuperar contraseña</h1>
-    <p class="login-subtitle">Te enviaremos un enlace para restablecer tu contraseña.</p>
+    <p class="login-subtitle">Solicita un enlace y restablece tu contraseña sin correo electrónico.</p>
   </div>
 
-  <div class="step-chips">
-    <div class="step-chip"><span class="step-num">1</span> Ingresa tu correo</div>
-    <div class="step-chip"><span class="step-num">2</span> Revisa tu bandeja</div>
-    <div class="step-chip"><span class="step-num">3</span> Restablece</div>
-  </div>
+  @if (session('success'))
+    <div class="alert alert-success" role="status">{{ session('success') }}</div>
+  @endif
+  @if (session('reset_url'))
+    <div class="register-note" role="status">
+      <span>El sistema no envía correo. Usa este enlace privado para continuar:</span>
+      <a href="{{ session('reset_url') }}">{{ session('reset_url') }}</a>
+    </div>
+  @endif
 
   
       @if (session('success'))
@@ -31,7 +35,7 @@
         <input type="email" id="email" name="email" class="form-input" value="{{ old('email') }}" placeholder="tu@correo.com" required>
         @error('email')<div class="error-message">{{ $message }}</div>@enderror
       </div>
-      <button type="submit" class="btn-login">Enviar enlace de recuperación</button>
+      <button type="submit" class="btn-login">Generar enlace de recuperación</button>
     </form>
       @endif
   

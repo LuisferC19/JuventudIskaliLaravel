@@ -61,6 +61,7 @@ class PublicAccountFlowTest extends TestCase
             $table->string('asunto');
             $table->text('mensaje');
             $table->unsignedInteger('id_referencia')->nullable();
+            $table->unsignedInteger('id_tipo_referencia')->nullable();
             $table->boolean('leida')->default(false);
         });
         DB::table('roles')->insert([

@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\ActividadController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BackupController;
 use App\Http\Controllers\BeneficiarioController;
 use App\Http\Controllers\CampanaController;
 use App\Http\Controllers\DashboardController;
@@ -48,9 +50,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/voluntarios', [VoluntarioController::class, 'store'])->middleware('permiso:voluntarios,crear')->name('voluntarios.store');
     Route::get('/voluntarios/{voluntario}/edit', [VoluntarioController::class, 'edit'])->middleware('permiso:voluntarios,editar')->name('voluntarios.edit');
     Route::put('/voluntarios/{voluntario}', [VoluntarioController::class, 'update'])->middleware('permiso:voluntarios,editar')->name('voluntarios.update');
+    Route::delete('/voluntarios/{voluntario}', [VoluntarioController::class, 'destroy'])->middleware('permiso:voluntarios,eliminar')->name('voluntarios.destroy');
+    Route::post('/voluntarios/asignaciones', [VoluntarioController::class, 'storeAsignacion'])->middleware('permiso:voluntarios,crear')->name('voluntarios.asignaciones.store');
+    Route::patch('/voluntarios/asignaciones/{asignacion}', [VoluntarioController::class, 'updateAsignacion'])->middleware('permiso:voluntarios,editar')->name('voluntarios.asignaciones.update');
+    Route::delete('/voluntarios/asignaciones/{asignacion}', [VoluntarioController::class, 'destroyAsignacion'])->middleware('permiso:voluntarios,eliminar')->name('voluntarios.asignaciones.destroy');
     Route::get('/voluntarios/actividades/{actividad}/asistencia', [VoluntarioController::class, 'asistencia'])->middleware('permiso:voluntarios,ver')->name('voluntarios.asistencia');
     Route::post('/voluntarios/asistencia', [VoluntarioController::class, 'registrarAsistencia'])->middleware('permiso:voluntarios,crear')->name('voluntarios.asistencia.registrar');
     Route::post('/voluntarios/qr', [VoluntarioController::class, 'generarQr'])->middleware('permiso:voluntarios,crear')->name('voluntarios.qr.generar');
+    Route::post('/voluntarios/actividades/{actividad}/qr', [VoluntarioController::class, 'generarQrActividad'])->middleware('permiso:voluntarios,crear')->name('voluntarios.actividades.qr.generar');
     Route::post('/voluntarios/qr/validar', [VoluntarioController::class, 'validarQr'])->middleware('permiso:voluntarios,editar')->name('voluntarios.qr.validar');
     Route::get('/gamificacion', [GamificacionController::class, 'index'])->middleware('permiso:gamificacion,ver')->name('gamificacion.index');
 

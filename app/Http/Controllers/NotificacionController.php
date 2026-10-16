@@ -30,11 +30,17 @@ class NotificacionController extends Controller
             ->get(['id_notificacion', 'tipo', 'asunto', 'mensaje', 'fecha_envio']);
 
         return response()->json([
+            'success' => true,
             'notificaciones' => $notificaciones,
             'total_no_leidas' => $this->notificacionesDelUsuario((int) $request->user()->id_usuario)
                 ->where('leida', false)
                 ->count(),
         ]);
+    }
+
+    public function ultimas(Request $request): JsonResponse
+    {
+        return $this->recientes($request);
     }
 
     public function marcarLeida(Request $request, int $notificacion): RedirectResponse|JsonResponse
@@ -55,7 +61,8 @@ class NotificacionController extends Controller
 
     public function marcarTodasLeidas(Request $request): RedirectResponse|JsonResponse
     {
-        $this->notificacionesDelUsuario((int) $request->user()->id_usuario)
+        \Illuminate\Support\Facades\DB::table('notificaciones')
+            ->where('id_usuario', (int) $request->user()->id_usuario)
             ->where('leida', false)
             ->update(['leida' => true]);
 
@@ -64,6 +71,11 @@ class NotificacionController extends Controller
         }
 
         return back()->with('success', 'Todas las notificaciones se marcaron como leídas.');
+    }
+
+    public function marcarTodas(Request $request): RedirectResponse|JsonResponse
+    {
+        return $this->marcarTodasLeidas($request);
     }
 
     private function notificacionesDelUsuario(int $idUsuario): \Illuminate\Database\Query\Builder

@@ -13,6 +13,9 @@
           Los respaldos ZIP generados aquí incluyen únicamente datos, omiten columnas calculadas y están firmados para impedir la importación de archivos alterados.
         </p>
       </div>
+      @error('backup_file')
+        <div class="alert alert-danger" role="alert">{{ $message }}</div>
+      @enderror
 
       <div class="kpi-grid">
         <div class="kpi"><div class="kpi-label">Operaciones registradas</div><div class="kpi-value">{{ $historial->count() }}</div></div>

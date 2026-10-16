@@ -19,6 +19,9 @@
           Genera reportes en formato PDF de los módulos del sistema. Los archivos se abren directamente en tu navegador y puedes descargarlos o imprimirlos.
         </p>
       </div>
+      @if ($errors->any())
+        <div class="alert alert-danger" role="alert">{{ $errors->first() }}</div>
+      @endif
 
       <!-- ══ Tarjetas de reportes ══ -->
       <div class="report-grid">
@@ -43,8 +46,8 @@
           <form method="GET" action="{{ route('reportes.generar') }}" target="_blank">
             <input type="hidden" name="tipo"   value="donadores">
             <div style="display:flex;gap:6px;">
-              <input type="date" name="desde" title="Registrado desde" class="form-control" style="font-size:11.5px;padding:6px 8px;">
-              <input type="date" name="hasta" title="Registrado hasta" class="form-control" style="font-size:11.5px;padding:6px 8px;">
+              <input type="date" name="desde" value="{{ old('desde') }}" title="Registrado desde" class="form-control" style="font-size:11.5px;padding:6px 8px;">
+              <input type="date" name="hasta" value="{{ old('hasta') }}" title="Registrado hasta" class="form-control" style="font-size:11.5px;padding:6px 8px;">
             </div>
             <button type="submit" class="btn btn-primary">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">
@@ -78,8 +81,8 @@
           <form method="GET" action="{{ route('reportes.generar') }}" target="_blank">
             <input type="hidden" name="tipo"   value="beneficiarios">
             <div style="display:flex;gap:6px;">
-              <input type="date" name="desde" title="Registrado desde" class="form-control" style="font-size:11.5px;padding:6px 8px;">
-              <input type="date" name="hasta" title="Registrado hasta" class="form-control" style="font-size:11.5px;padding:6px 8px;">
+              <input type="date" name="desde" value="{{ old('desde') }}" title="Registrado desde" class="form-control" style="font-size:11.5px;padding:6px 8px;">
+              <input type="date" name="hasta" value="{{ old('hasta') }}" title="Registrado hasta" class="form-control" style="font-size:11.5px;padding:6px 8px;">
             </div>
             <button type="submit" class="btn btn-primary">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">
@@ -111,8 +114,8 @@
           <form method="GET" action="{{ route('reportes.generar') }}" target="_blank">
             <input type="hidden" name="tipo"   value="campanas">
             <div style="display:flex;gap:6px;">
-              <input type="date" name="desde" title="Inicio de campaña desde" class="form-control" style="font-size:11.5px;padding:6px 8px;">
-              <input type="date" name="hasta" title="Inicio de campaña hasta" class="form-control" style="font-size:11.5px;padding:6px 8px;">
+              <input type="date" name="desde" value="{{ old('desde') }}" title="Inicio de campaña desde" class="form-control" style="font-size:11.5px;padding:6px 8px;">
+              <input type="date" name="hasta" value="{{ old('hasta') }}" title="Inicio de campaña hasta" class="form-control" style="font-size:11.5px;padding:6px 8px;">
             </div>
             <button type="submit" class="btn btn-primary">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;">

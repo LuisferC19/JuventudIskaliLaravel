@@ -7,21 +7,27 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use App\Models\HistorialAcceso;
+use App\Models\RecuperacionContrasena;
+use App\Models\Rol;
 use App\Models\Usuario;
+use App\Services\NotificacionService;
 
 class AuthController extends Controller
 {
-    public function index(): View|RedirectResponse
+    public function index(): Response|RedirectResponse
     {
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
 
-        return view('login');
+        return response()
+            ->view('login')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     public function authenticate(Request $request): RedirectResponse
@@ -66,6 +72,13 @@ class AuthController extends Controller
 
         if (! $autenticado) {
             $usuario->increment('intentos_fallidos');
+            if ($usuario->intentos_fallidos >= 5) {
+                app(NotificacionService::class)->cuentaBloqueada(
+                    (int) $usuario->id_usuario,
+                    trim($usuario->nombre.' '.$usuario->apellido),
+                    (string) $usuario->email
+                );
+            }
             HistorialAcceso::create([
                 'id_usuario' => $usuario->id_usuario,
                 'tipo_accion' => 'fallo_login',
@@ -75,9 +88,6 @@ class AuthController extends Controller
             ]);
 
             $intentosRestantes = max(0, 5 - $usuario->intentos_fallidos);
-            if ($intentosRestantes === 0) {
-                $this->notificarCuentaBloqueada($usuario);
-            }
             $mensaje = $intentosRestantes === 0
                 ? 'Cuenta bloqueada por demasiados intentos fallidos. Contacta al administrador.'
                 : "Credenciales incorrectas. Te quedan {$intentosRestantes} intento(s).";
@@ -131,6 +141,11 @@ class AuthController extends Controller
         return view('registro');
     }
 
+    public function register(Request $request): RedirectResponse
+    {
+        return $this->crearCuenta($request);
+    }
+
     public function crearCuenta(Request $request): RedirectResponse
     {
         $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
@@ -143,8 +158,13 @@ class AuthController extends Controller
         ]);
 
         $rolVoluntario = DB::table('roles')->whereRaw('LOWER(nombre) = ?', ['voluntario'])->value('id_rol');
+        if ($rolVoluntario === null) {
+            return back()->withInput($request->only('nombre', 'apellido', 'email'))
+                ->withErrors(['email' => 'No se pudo solicitar el acceso. El rol Voluntario no está configurado.']);
+        }
+
         Usuario::create([
-            'id_rol' => $rolVoluntario ?? 3,
+            'id_rol' => $rolVoluntario,
             'nombre' => trim($datos['nombre']),
             'apellido' => trim($datos['apellido']),
             'email' => $datos['email'],
@@ -190,30 +210,4 @@ class AuthController extends Controller
             ->with('success', 'Si el correo está asociado a una cuenta, recibirás instrucciones para restablecer la contraseña.');
     }
 
-    private function notificarCuentaBloqueada(Usuario $usuario): void
-    {
-        try {
-            $administradores = DB::table('usuarios')
-                ->whereIn('id_rol', function ($query): void {
-                    $query->select('id_rol')->from('roles')->where('nombre', 'Administrador');
-                })
-                ->pluck('id_usuario');
-
-            foreach ($administradores as $idAdministrador) {
-                DB::table('notificaciones')->insert([
-                    'id_usuario' => $idAdministrador,
-                    'tipo' => 'alerta',
-                    'canal' => 'web',
-                    'asunto' => 'Cuenta bloqueada por intentos fallidos',
-                    'mensaje' => 'La cuenta de '.trim($usuario->nombre.' '.$usuario->apellido).' ('.$usuario->email.') alcanzó cinco intentos fallidos.',
-                    'id_referencia' => $usuario->id_usuario,
-                ]);
-            }
-        } catch (\Throwable $error) {
-            Log::error('No se pudo notificar el bloqueo de cuenta.', [
-                'id_usuario' => $usuario->id_usuario,
-                'error' => $error->getMessage(),
-            ]);
-        }
-    }
 }

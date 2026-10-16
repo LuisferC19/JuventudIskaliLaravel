@@ -2,6 +2,12 @@
 @section('title', 'Voluntarios | Juventud Iskali')
 @section('page-title', 'Voluntarios')
 @section('content')
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<div class="main">
+  @include('partials.topbar')
+  <div class="content" style="padding:24px;">
+    @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    @if ($errors->any())<div class="alert alert-danger"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
 <div style="display:flex;width:100%;">
   <div class="main">

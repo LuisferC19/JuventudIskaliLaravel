@@ -25,6 +25,17 @@ class AsistenciaVoluntario extends Model
     {
         return [
             'fecha_hora' => 'datetime',
+            'presente' => 'boolean',
         ];
+    }
+
+    public function voluntario(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Voluntario::class, 'id_voluntario', 'id_voluntario');
+    }
+
+    public function actividad(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Actividad::class, 'id_actividad', 'id_actividad');
     }
 }

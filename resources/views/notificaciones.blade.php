@@ -21,6 +21,15 @@
           <div class="kpi-value">{{ $notificaciones->count() - $noLeidas }}</div>
         </div>
       </div>
+      <div class="kpi amber">
+        <div class="kpi-label">No leídas</div>
+        <div class="kpi-value">{{ $noLeidas }}</div>
+      </div>
+      <div class="kpi blue">
+        <div class="kpi-label">Leídas</div>
+        <div class="kpi-value">{{ $totalNotificaciones - $noLeidas }}</div>
+      </div>
+    </div>
 
       <div class="card">
         <div class="card-header">

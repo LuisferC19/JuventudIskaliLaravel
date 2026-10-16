@@ -366,7 +366,7 @@
   new Chart(document.getElementById('chartPieTipo'), {
     type: 'doughnut',
     data: {
-      labels: ["Econ\u00f3mica","En especie"],
+      labels: @json($charts['tipos_donacion']['labels']),
       datasets: [{
         data: @json($tiposDonacion),
         backgroundColor: [colBlue, colVerde],
@@ -390,7 +390,7 @@
   new Chart(document.getElementById('chartDonutBenef'), {
     type: 'doughnut',
     data: {
-      labels: ["Activos","En espera","Inactivos"],
+      labels: @json($charts['beneficiarios']['labels']),
       datasets: [{
         data: @json($estadosBeneficiario),
         backgroundColor: [colVerde, colAmber, colGray],
@@ -414,7 +414,7 @@
   new Chart(document.getElementById('chartDonadorTipo'), {
     type: 'bar',
     data: {
-      labels: ["An\u00f3nimo","Persona","Grupo","Organizaci\u00f3n"],
+      labels: @json($charts['donadores']['labels']),
       datasets: [{
         label: 'Donadores',
         data:  @json($tiposDonador),
