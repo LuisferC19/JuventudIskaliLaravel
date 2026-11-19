@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Contracts\InventarioService;
+use App\Contracts\InventarioServiceInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use LogicException;
@@ -37,32 +37,14 @@ class DonacionWorkflowService
                 'evidencia_url' => $datos['evidencia_url'] ?? null,
             ], 'id_donacion');
 
-            if ($datos['tipo'] === 'especie') {
-                $bien = DB::table('tipos_bien')
-                    ->where('id_tipo_bien', $datos['id_tipo_bien'])
-                    ->where('activo', true)
-                    ->lockForUpdate()
-                    ->first();
-                if (!$bien) {
-                    throw new LogicException('El tipo de bien seleccionado no está activo.');
-                }
-
-                DB::table('donaciones_especie')->insert([
-                    'id_donacion' => $id,
-                    'id_tipo_bien' => $bien->id_tipo_bien,
-                    'descripcion' => $datos['descripcion'] ?? null,
-                    'cantidad' => $datos['cantidad'],
-                    'unidad_medida' => $bien->unidad_medida,
-                ]);
-            } else {
-                DB::table('donaciones_economicas')->insert([
-                    'id_donacion' => $id,
-                    'monto' => $datos['monto'],
-                    'moneda' => $datos['moneda'] ?? 'MXN',
-                    'metodo_pago' => $datos['metodo_pago'],
-                    'referencia_pago' => $datos['referencia_pago'] ?? null,
-                ]);
-            }
+            $bien = $this->resolverTipoBien($datos['producto'], $datos['unidad_medida']);
+            DB::table('donaciones_especie')->insert([
+                'id_donacion' => $id,
+                'id_tipo_bien' => $bien->id_tipo_bien,
+                'descripcion' => $datos['descripcion'] ?? null,
+                'cantidad' => $datos['cantidad'],
+                'unidad_medida' => $bien->unidad_medida,
+            ]);
 
             return (int) $id;
         }, 3);
@@ -94,36 +76,17 @@ class DonacionWorkflowService
                 ->where('id_donacion', $id)
                 ->lockForUpdate()
                 ->first();
-            $economica = DB::table('donaciones_economicas')
-                ->where('id_donacion', $id)
-                ->lockForUpdate()
-                ->first();
-
-            if ($especie) {
-                $bien = DB::table('tipos_bien')
-                    ->where('id_tipo_bien', $datos['id_tipo_bien'])
-                    ->where('activo', true)
-                    ->lockForUpdate()
-                    ->first();
-                if (!$bien) {
-                    throw new LogicException('El tipo de bien seleccionado no está activo.');
-                }
-                DB::table('donaciones_especie')->where('id_donacion', $id)->update([
-                    'id_tipo_bien' => $bien->id_tipo_bien,
-                    'descripcion' => $datos['descripcion'] ?? null,
-                    'cantidad' => $datos['cantidad'],
-                    'unidad_medida' => $bien->unidad_medida,
-                ]);
-            } elseif ($economica) {
-                DB::table('donaciones_economicas')->where('id_donacion', $id)->update([
-                    'monto' => $datos['monto'],
-                    'moneda' => $datos['moneda'] ?? $economica->moneda,
-                    'metodo_pago' => $datos['metodo_pago'],
-                    'referencia_pago' => $datos['referencia_pago'] ?? null,
-                ]);
-            } else {
-                throw new LogicException('La donación no tiene un detalle válido.');
+            if (!$especie) {
+                throw new LogicException('La donación no tiene un detalle en especie válido.');
             }
+
+            $bien = $this->resolverTipoBien($datos['producto'], $datos['unidad_medida']);
+            DB::table('donaciones_especie')->where('id_donacion', $id)->update([
+                'id_tipo_bien' => $bien->id_tipo_bien,
+                'descripcion' => $datos['descripcion'] ?? null,
+                'cantidad' => $datos['cantidad'],
+                'unidad_medida' => $bien->unidad_medida,
+            ]);
         }, 3);
     }
 
@@ -135,10 +98,7 @@ class DonacionWorkflowService
                 throw new LogicException('Solo se pueden eliminar donaciones pendientes.');
             }
 
-            DB::table('donaciones_especie')->where('id_donacion', $id)->lockForUpdate()->first();
-            DB::table('donaciones_economicas')->where('id_donacion', $id)->lockForUpdate()->first();
             DB::table('donaciones_especie')->where('id_donacion', $id)->delete();
-            DB::table('donaciones_economicas')->where('id_donacion', $id)->delete();
             DB::table('donaciones')->where('id_donacion', $id)->delete();
         }, 3);
     }
@@ -163,7 +123,7 @@ class DonacionWorkflowService
                     ->lockForUpdate()
                     ->first();
                 if ($especie) {
-                    $inventario = app(InventarioService::class);
+                    $inventario = app(InventarioServiceInterface::class);
                     if (!$inventario->registrarEntrada(
                         (int) $especie->id_tipo_bien,
                         (float) $especie->cantidad,
@@ -225,6 +185,38 @@ class DonacionWorkflowService
         } catch (\Throwable $error) {
             Log::error('No se pudo notificar donación verificada.', ['id_donacion' => $idDonacion, 'error' => $error->getMessage()]);
         }
+    }
+
+    private function resolverTipoBien(string $producto, string $unidadMedida): object
+    {
+        $nombre = trim(preg_replace('/\s+/', ' ', trim($producto)));
+        $bien = DB::table('tipos_bien')
+            ->whereRaw('LOWER(nombre) = ?', [mb_strtolower($nombre)])
+            ->lockForUpdate()
+            ->first();
+
+        if (! $bien) {
+            $idTipoBien = DB::table('tipos_bien')->insertGetId([
+                'nombre' => $nombre,
+                'unidad_medida' => $unidadMedida,
+                'activo' => true,
+            ], 'id_tipo_bien');
+
+            return (object) [
+                'id_tipo_bien' => $idTipoBien,
+                'nombre' => $nombre,
+                'unidad_medida' => $unidadMedida,
+                'activo' => true,
+            ];
+        }
+
+        if (! $bien->activo) {
+            DB::table('tipos_bien')
+                ->where('id_tipo_bien', $bien->id_tipo_bien)
+                ->update(['activo' => true]);
+        }
+
+        return $bien;
     }
 
 }

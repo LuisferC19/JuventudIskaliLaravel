@@ -3,6 +3,7 @@
 /public/build
 /public/hot
 /public/storage
+_referencia_php/
 /storage/*.key
 /storage/pail
 /vendor

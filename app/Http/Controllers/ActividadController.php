@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ActividadController extends Controller
@@ -23,55 +24,38 @@ class ActividadController extends Controller
 
     public function index(Request $request): View
     {
-        $datosMes = $request->validate([
-            'mes' => ['nullable', 'integer', 'between:1,12'],
-            'anio' => ['nullable', 'integer', 'between:2000,2100'],
-            'zona' => ['nullable', 'in:todas,san_martin,tlaxcala,ambas'],
+        $filtros = $request->validate([
+            'mes' => ['sometimes', 'integer', 'between:1,12'],
+            'anio' => ['sometimes', 'integer', 'between:2000,2100'],
         ]);
-        $mes = (int) ($datosMes['mes'] ?? now()->month);
-        $anio = (int) ($datosMes['anio'] ?? now()->year);
-        $zona = $datosMes['zona'] ?? 'todas';
-        $fechaMes = CarbonImmutable::create($anio, $mes, 1);
-        $actividadesMes = $this->consultaMes($mes, $anio)->get();
-        $actividadesPorDia = $actividadesMes->groupBy(
-            fn (Actividad $actividad): int => (int) $actividad->fecha_inicio->day
+        $fechaCalendario = CarbonImmutable::create(
+            (int) ($filtros['anio'] ?? now()->year),
+            (int) ($filtros['mes'] ?? now()->month),
+            1
         );
-        $actividades = $this->actividadesFiltradas($zona)->orderByDesc('fecha_inicio')->get();
-        $inicioCalendario = $fechaMes->startOfWeek(CarbonImmutable::MONDAY);
-        $diasCalendario = [];
+        $inicio = $fechaCalendario->startOfMonth();
+        $fin = $fechaCalendario->endOfMonth();
+        $inicioSemana = now()->startOfWeek();
+        $finSemana = now()->endOfWeek();
 
-        for ($dia = $inicioCalendario; $dia->lte($fechaMes->endOfMonth()); $dia = $dia->addDay()) {
-            $diasCalendario[] = $dia;
-        }
-        while (count($diasCalendario) % 7 !== 0) {
-            $diasCalendario[] = null;
-        }
-
-        $kpis = [
-            'total_actividades' => Actividad::count(),
-            'actividades_semana' => Actividad::whereBetween('fecha_inicio', [
-                now()->startOfWeek(),
-                now()->endOfWeek(),
-            ])->count(),
-            'san_martin' => Actividad::whereIn('zona', ['san_martin', 'ambas'])->count(),
-            'tlaxcala' => Actividad::whereIn('zona', ['tlaxcala', 'ambas'])->count(),
-        ];
-        $usuarios = DB::table('usuarios')
-            ->where('activo', true)
-            ->orderBy('nombre')
-            ->get(['id_usuario', 'nombre', 'apellido', 'email']);
-
-        return view('planning', compact(
-            'mes',
-            'anio',
-            'zona',
-            'fechaMes',
-            'diasCalendario',
-            'actividadesPorDia',
-            'actividades',
-            'kpis',
-            'usuarios'
-        ));
+        return view('planning', [
+            'fechaCalendario' => $fechaCalendario,
+            'actividades' => DB::table('actividades as a')
+                ->leftJoin('usuarios as u', 'u.id_usuario', '=', 'a.id_responsable')
+                ->whereBetween('a.fecha_inicio', [$inicio, $fin])
+                ->orderBy('a.fecha_inicio')
+                ->get(['a.*', 'u.nombre as responsable_nombre', 'u.apellido as responsable_apellido']),
+            'totalActividades' => DB::table('actividades')->count(),
+            'actividadesSemana' => DB::table('actividades')
+                ->whereBetween('fecha_inicio', [$inicioSemana, $finSemana])
+                ->count(),
+            'actividadesSanMartin' => DB::table('actividades')->whereIn('zona', ['san_martin', 'ambas'])->count(),
+            'actividadesTlaxcala' => DB::table('actividades')->whereIn('zona', ['tlaxcala', 'ambas'])->count(),
+            'responsables' => DB::table('usuarios')
+                ->where('estatus', 'ACTIVO')
+                ->orderBy('nombre')
+                ->get(['id_usuario', 'nombre', 'apellido']),
+        ]);
     }
 
     public function create(): View
@@ -82,6 +66,7 @@ class ActividadController extends Controller
                 'fecha_fin' => now()->startOfDay(),
                 'zona' => 'ambas',
                 'estado' => 'planeada',
+                'puntos' => 5,
             ]),
             'usuarios' => $this->usuariosResponsables(),
         ]);
@@ -124,9 +109,59 @@ class ActividadController extends Controller
 
     public function destroy(string $actividad): RedirectResponse
     {
-        Actividad::findOrFail($actividad)->delete();
+        DB::transaction(function () use ($actividad): void {
+            $existe = DB::table('actividades')
+                ->where('id_actividad', $actividad)
+                ->lockForUpdate()
+                ->exists();
+            abort_unless($existe, 404);
+
+            if (DB::table('asistencia_voluntarios')->where('id_actividad', $actividad)->exists()) {
+                throw ValidationException::withMessages([
+                    'actividad' => 'No se puede eliminar una actividad que ya tiene registros de asistencia.',
+                ]);
+            }
+
+            Actividad::where('id_actividad', $actividad)->delete();
+        });
 
         return redirect()->route('planning.index')->with('success', 'Actividad eliminada correctamente.');
+    }
+
+    public function calendario(Request $request): JsonResponse
+    {
+        $filtros = $request->validate([
+            'mes' => ['required', 'integer', 'between:1,12'],
+            'anio' => ['required', 'integer', 'between:2000,2100'],
+        ]);
+        $inicio = CarbonImmutable::create((int) $filtros['anio'], (int) $filtros['mes'], 1)->startOfMonth();
+
+        return response()->json([
+            'success' => true,
+            'actividades' => DB::table('actividades')
+                ->whereBetween('fecha_inicio', [$inicio, $inicio->endOfMonth()])
+                ->orderBy('fecha_inicio')
+                ->get([
+                    'id_actividad',
+                    'titulo',
+                    'descripcion',
+                    'fecha_inicio',
+                    'fecha_fin',
+                    'zona',
+                    'estado',
+                    'puntos',
+                ])
+                ->map(fn ($actividad): array => [
+                    'id_actividad' => (int) $actividad->id_actividad,
+                    'titulo' => $actividad->titulo,
+                    'descripcion' => $actividad->descripcion,
+                    'fecha_inicio' => $actividad->fecha_inicio,
+                    'fecha_fin' => $actividad->fecha_fin,
+                    'zona' => $actividad->zona,
+                    'estado' => $actividad->estado,
+                    'puntos' => (int) $actividad->puntos,
+                ]),
+        ]);
     }
 
     public function actualizarEstado(Request $request, string $actividad): JsonResponse
@@ -163,6 +198,7 @@ class ActividadController extends Controller
                 'fecha_fin' => $actividad->fecha_fin->toDateTimeString(),
                 'zona' => $actividad->zona,
                 'estado' => $actividad->estado,
+                'puntos' => (int) $actividad->puntos,
                 'id_responsable' => (int) $actividad->id_responsable,
                 'dia' => (int) $actividad->fecha_inicio->day,
                 'nombre' => $actividad->responsable?->nombre,
@@ -202,7 +238,7 @@ class ActividadController extends Controller
     private function datosActividad(array $datos, int $idUsuario): array
     {
         $datos['fecha_fin'] = $datos['fecha_fin'] ?: $datos['fecha_inicio'];
-        $datos['id_responsable'] = $datos['id_usuario_responsable'] ?: $idUsuario;
+        $datos['id_responsable'] = ($datos['id_usuario_responsable'] ?? null) ?: $idUsuario;
         unset($datos['id_usuario_responsable']);
 
         return $datos;
@@ -211,7 +247,7 @@ class ActividadController extends Controller
     private function usuariosResponsables()
     {
         return DB::table('usuarios')
-            ->where('activo', true)
+            ->where('estatus', 'ACTIVO')
             ->orderBy('nombre')
             ->get(['id_usuario', 'nombre', 'apellido', 'email']);
     }

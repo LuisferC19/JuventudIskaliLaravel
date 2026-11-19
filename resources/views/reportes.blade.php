@@ -107,7 +107,7 @@
               Campañas
             </h3>
             <p style="font-size:12px;color:var(--muted);line-height:1.6;margin:0;">
-              Reporte de todas las campañas con nombre, fechas, estatus y meta económica acumulada.
+              Reporte de todas las campañas con nombre, fechas, estatus y meta de acopio acumulada.
             </p>
           </div>
           <!-- RF005: filtro de fechas opcional (sobre la fecha de inicio de la campaña). -->

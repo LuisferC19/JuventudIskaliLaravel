@@ -16,7 +16,7 @@ class AvanceCampana extends Model
         'id_usuario',
         'descripcion',
         'porcentaje_avance',
-        'monto_recaudado',
+        'cantidad_acopiada',
         'evidencia_url',
         'fecha_registro',
     ];
@@ -25,7 +25,7 @@ class AvanceCampana extends Model
     {
         return [
             'porcentaje_avance' => 'decimal:2',
-            'monto_recaudado' => 'decimal:2',
+            'cantidad_acopiada' => 'decimal:2',
             'fecha_registro' => 'datetime',
         ];
     }

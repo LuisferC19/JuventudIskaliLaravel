@@ -9,6 +9,15 @@ use Throwable;
 
 class NotificacionService
 {
+    public function contarNoLeidas(int $idUsuario): int
+    {
+        return DB::table('notificaciones')
+            ->where('id_usuario', $idUsuario)
+            ->whereIn('canal', ['web', 'web,app'])
+            ->where('leida', false)
+            ->count();
+    }
+
     public function crear(
         int $idUsuario,
         string $tipo,
@@ -54,7 +63,7 @@ class NotificacionService
             ->whereIn('id_rol', function ($query): void {
                 $query->select('id_rol')
                     ->from('roles')
-                    ->whereIn('nombre', ['Administrador', 'Coordinador']);
+                    ->whereIn('slug', ['superadmin', 'directiva', 'coordinador']);
             })
             ->pluck('id_usuario');
 
@@ -64,7 +73,7 @@ class NotificacionService
     public function notificarUsuariosActivos(string $tipo, string $asunto, string $mensaje, ?string $referencia = null, ?int $idReferencia = null): void
     {
         $this->notificarUsuarios(
-            DB::table('usuarios')->where('activo', true)->pluck('id_usuario'),
+            DB::table('usuarios')->where('estatus', 'ACTIVO')->pluck('id_usuario'),
             $tipo,
             $asunto,
             $mensaje,
@@ -133,7 +142,7 @@ class NotificacionService
                     ->whereIn('id_rol', function ($query): void {
                         $query->select('id_rol')
                             ->from('roles')
-                            ->where('nombre', 'Administrador');
+                            ->whereIn('slug', ['superadmin', 'directiva']);
                     })
                     ->pluck('id_usuario'),
                 'alerta',

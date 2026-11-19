@@ -29,8 +29,6 @@ class Donacion extends Model
     {
         return [
             'fecha_recepcion' => 'date',
-            'latitud' => 'decimal:7',
-            'longitud' => 'decimal:7',
             'created_at' => 'datetime',
         ];
     }
@@ -38,11 +36,6 @@ class Donacion extends Model
     public function especie(): HasOne
     {
         return $this->hasOne(DonacionEspecie::class, 'id_donacion', 'id_donacion');
-    }
-
-    public function economica(): HasOne
-    {
-        return $this->hasOne(DonacionEconomica::class, 'id_donacion', 'id_donacion');
     }
 
     public function donador(): BelongsTo

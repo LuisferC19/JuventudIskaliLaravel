@@ -1,8 +1,8 @@
 @php
   $modoEdicion = $modoEdicion ?? false;
-  $tipoFormulario = old('tipo', $tipoDonacion ?? (isset($donacion) && $donacion->especie ? 'especie' : 'economica'));
-  $especie = $donacion->especie ?? null;
-  $economica = $donacion->economica ?? null;
+  $donacion = $donacion ?? null;
+  $especie = $donacion?->especie;
+  $tipoBienActual = $especie?->tipoBien;
 @endphp
 <div style="display:flex;width:100%;">
   <div class="main">
@@ -50,61 +50,40 @@
                 <input type="url" id="evidencia_url" name="evidencia_url" maxlength="255" placeholder="https://..." value="{{ old('evidencia_url', $donacion->evidencia_url ?? '') }}">
                 @error('evidencia_url')<div class="field-error">{{ $message }}</div>@enderror
               </div>
-              <div class="form-group full">
-                <label for="tipo">Tipo de donación *</label>
-                @if ($modoEdicion)
-                  <div>{{ $tipoFormulario === 'especie' ? 'En especie' : 'Económica' }}</div>
-                  <input type="hidden" name="tipo" value="{{ $tipoFormulario }}">
-                @else
-                  <select id="tipo" name="tipo" required>
-                    <option value="especie" @selected($tipoFormulario === 'especie')>En especie</option>
-                    <option value="economica" @selected($tipoFormulario === 'economica')>Económica</option>
-                  </select>
-                @endif
-                @error('tipo')<div class="field-error">{{ $message }}</div>@enderror
-              </div>
             </div>
-            <div id="especie-fields" style="display:{{ $tipoFormulario === 'especie' ? 'block' : 'none' }};background:rgba(10,175,160,.04);border:1px solid rgba(10,175,160,.12);border-radius:10px;padding:20px;margin:20px 0;">
+            <div id="especie-fields" style="background:rgba(10,175,160,.04);border:1px solid rgba(10,175,160,.12);border-radius:10px;padding:20px;margin:20px 0;">
               <div style="font-size:12px;font-weight:600;color:var(--primary);letter-spacing:.5px;text-transform:uppercase;margin-bottom:16px;">Detalle de donación en especie</div>
               <div class="form-grid">
                 <div class="form-group">
-                  <label for="id_tipo_bien">Tipo de bien *</label>
-                  <select id="id_tipo_bien" name="id_tipo_bien" {{ $tipoFormulario === 'especie' ? 'required' : '' }}>
-                    <option value="">Selecciona un bien</option>
+                  <label for="producto">Producto donado *</label>
+                  <input type="text" name="producto" id="producto" list="lista-productos" maxlength="100" required value="{{ old('producto', $tipoBienActual?->nombre ?? '') }}">
+                  <datalist id="lista-productos">
                     @foreach ($tiposBien as $bien)
-                      <option value="{{ $bien->id_tipo_bien }}" @selected(old('id_tipo_bien', $especie->id_tipo_bien ?? '') == $bien->id_tipo_bien)>{{ $bien->nombre }} ({{ $bien->unidad_medida }})</option>
+                      <option value="{{ $bien->nombre }}"></option>
+                    @endforeach
+                  </datalist>
+                  @error('producto')<div class="field-error">{{ $message }}</div>@enderror
+                </div>
+                <div class="form-group">
+                  <label for="unidad_medida">Unidad *</label>
+                  <select id="unidad_medida" name="unidad_medida" required>
+                    <option value="">Selecciona una unidad</option>
+                    @foreach (['pieza', 'par', 'kg', 'litro', 'caja', 'paquete', 'kit'] as $unidad)
+                      <option value="{{ $unidad }}" @selected(old('unidad_medida', $tipoBienActual?->unidad_medida ?? $especie?->unidad_medida ?? '') === $unidad)>{{ ucfirst($unidad) }}</option>
                     @endforeach
                   </select>
-                  @error('id_tipo_bien')<div class="field-error">{{ $message }}</div>@enderror
+                  @error('unidad_medida')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
                 <div class="form-group">
                   <label for="cantidad">Cantidad *</label>
-                  <input type="number" id="cantidad" name="cantidad" min="0.01" step="0.01" value="{{ old('cantidad', $especie->cantidad ?? '') }}" {{ $tipoFormulario === 'especie' ? 'required' : '' }}>
+                  <input type="number" id="cantidad" name="cantidad" min="0.01" step="0.01" value="{{ old('cantidad', $especie?->cantidad ?? '') }}" required>
                   @error('cantidad')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
                 <div class="form-group full">
                   <label for="descripcion">Descripción</label>
-                  <textarea id="descripcion" name="descripcion" rows="3">{{ old('descripcion', $especie->descripcion ?? '') }}</textarea>
+                  <textarea id="descripcion" name="descripcion" rows="3">{{ old('descripcion', $especie?->descripcion ?? '') }}</textarea>
                   @error('descripcion')<div class="field-error">{{ $message }}</div>@enderror
                 </div>
-              </div>
-            </div>
-            <div id="economica-fields" style="display:{{ $tipoFormulario === 'economica' ? 'block' : 'none' }};background:rgba(232,160,32,.04);border:1px solid rgba(232,160,32,.15);border-radius:10px;padding:20px;margin:20px 0;">
-              <div style="font-size:12px;font-weight:600;color:var(--amber);letter-spacing:.5px;text-transform:uppercase;margin-bottom:16px;">Detalle de donación económica</div>
-              <div class="form-grid">
-                <div class="form-group"><label for="monto">Monto *</label><input type="number" id="monto" name="monto" min="0.01" step="0.01" value="{{ old('monto', $economica->monto ?? '') }}" {{ $tipoFormulario === 'economica' ? 'required' : '' }}>@error('monto')<div class="field-error">{{ $message }}</div>@enderror</div>
-                <div class="form-group"><label for="moneda">Moneda</label><input id="moneda" name="moneda" maxlength="3" value="{{ old('moneda', $economica->moneda ?? 'MXN') }}">@error('moneda')<div class="field-error">{{ $message }}</div>@enderror</div>
-                <div class="form-group">
-                  <label for="metodo_pago">Método de pago *</label>
-                  <select id="metodo_pago" name="metodo_pago" {{ $tipoFormulario === 'economica' ? 'required' : '' }}>
-                    <option value="">Selecciona</option>
-                    @foreach (['efectivo', 'transferencia', 'cheque', 'otro'] as $metodo)
-                      <option value="{{ $metodo }}" @selected(old('metodo_pago', $economica->metodo_pago ?? '') === $metodo)>{{ ucfirst($metodo) }}</option>
-                    @endforeach
-                  </select>
-                  @error('metodo_pago')<div class="field-error">{{ $message }}</div>@enderror
-                </div>
-                <div class="form-group"><label for="referencia_pago">Referencia de pago</label><input id="referencia_pago" name="referencia_pago" maxlength="100" value="{{ old('referencia_pago', $economica->referencia_pago ?? '') }}">@error('referencia_pago')<div class="field-error">{{ $message }}</div>@enderror</div>
               </div>
             </div>
             <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:24px;">
@@ -117,14 +96,3 @@
     </div>
   </div>
 </div>
-@unless ($modoEdicion)
-<script>
-  document.getElementById('tipo')?.addEventListener('change', function () {
-    const especie = this.value === 'especie';
-    document.getElementById('especie-fields').style.display = especie ? 'block' : 'none';
-    document.getElementById('economica-fields').style.display = especie ? 'none' : 'block';
-    document.querySelectorAll('#especie-fields [required], #economica-fields [required]').forEach((field) => field.required = false);
-    document.querySelectorAll(especie ? '#especie-fields [id="id_tipo_bien"], #especie-fields [id="cantidad"]' : '#economica-fields [id="monto"], #economica-fields [id="metodo_pago"]').forEach((field) => field.required = true);
-  });
-</script>
-@endunless

@@ -86,6 +86,7 @@
                 <div style="font-size:11px;color:var(--muted);margin-top:5px;">
                   {{ \Illuminate\Support\Carbon::parse($actividad->fecha_inicio)->format('d/m/Y H:i') }} · {{ str_replace('_', ' ', ucfirst($actividad->zona)) }}
                 </div>
+                <div style="font-size:11px;color:var(--muted);margin-top:5px;">{{ $actividad->puntos }} pts</div>
                 @if ($actividad->descripcion)
                   <p style="font-size:12px;margin:7px 0;color:var(--muted);">{{ $actividad->descripcion }}</p>
                 @endif
@@ -101,6 +102,7 @@
                         'fecha_fin' => \Illuminate\Support\Carbon::parse($actividad->fecha_fin)->format('Y-m-d\TH:i'),
                         'zona' => $actividad->zona,
                         'estado' => $actividad->estado,
+                        'puntos' => $actividad->puntos,
                       ], JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP) }}"
                       onclick="editarActividad(this)">Editar</button>
                   @endcan
@@ -166,6 +168,10 @@
               <option value="planeada">Planeada</option><option value="en_curso">En curso</option><option value="completada">Completada</option><option value="cancelada">Cancelada</option>
             </select>
           </div>
+          <div class="form-group">
+            <label for="actividad-puntos">Puntos por asistencia (5 a 20) *</label>
+            <input id="actividad-puntos" type="number" name="puntos" min="5" max="20" step="1" required value="5">
+          </div>
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
           <button type="button" class="btn btn-secondary" onclick="cerrarModal()">Cancelar</button>
@@ -185,6 +191,7 @@ function abrirModal() {
   formularioActividad.action = @json(route('planning.store'));
   document.getElementById('metodo-actividad').value = 'POST';
   document.getElementById('titulo-modal-actividad').textContent = 'Nueva actividad';
+  document.getElementById('actividad-puntos').value = 5;
   document.getElementById('modal-actividad').style.display = 'flex';
 }
 
@@ -199,6 +206,7 @@ function editarActividad(boton) {
   document.getElementById('actividad-fin').value = actividad.fecha_fin;
   document.getElementById('actividad-zona').value = actividad.zona;
   document.getElementById('actividad-estado').value = actividad.estado;
+  document.getElementById('actividad-puntos').value = actividad.puntos;
   document.getElementById('modal-actividad').style.display = 'flex';
 }
 

@@ -29,13 +29,14 @@ class VolunteerManagementTest extends TestCase
 
     public function test_volunteer_profile_supports_create_update_and_logical_delete(): void
     {
-        $this->seedUser(1, 'Admin', 'Administrador');
-        $this->seedUser(2, 'Ana', 'Voluntario');
+        $this->seedUser(1, 'Admin', 'superadmin');
+        $this->seedUser(2, 'Ana', 'voluntario');
         $this->actingAs(Usuario::findOrFail(1));
 
         $this->post('/voluntarios', [
             'id_usuario' => 2,
             'telefono_contacto' => '222-123-4567',
+            'fecha_nacimiento' => '2000-05-10',
             'zona_asignada' => 'san_martin',
             'disponibilidad' => 'fines_semana',
             'fecha_ingreso' => '2026-10-15',
@@ -45,7 +46,16 @@ class VolunteerManagementTest extends TestCase
         $id = (int) DB::table('voluntarios')->value('id_voluntario');
         $this->put("/voluntarios/{$id}", [
             'id_usuario' => 2,
+            'telefono_contacto' => '222-123-4567',
+            'zona_asignada' => 'san_martin',
+            'disponibilidad' => 'fines_semana',
+            'fecha_ingreso' => '2026-10-15',
+        ])->assertSessionHasErrors('fecha_nacimiento');
+
+        $this->put("/voluntarios/{$id}", [
+            'id_usuario' => 2,
             'telefono_contacto' => '222-765-4321',
+            'fecha_nacimiento' => '2000-05-10',
             'zona_asignada' => 'tlaxcala',
             'disponibilidad' => 'medio_tiempo',
             'fecha_ingreso' => '2026-10-16',
@@ -56,6 +66,7 @@ class VolunteerManagementTest extends TestCase
         $this->assertDatabaseHas('voluntarios', [
             'id_voluntario' => $id,
             'telefono_contacto' => '222-765-4321',
+            'fecha_nacimiento' => '2000-05-10',
             'zona_asignada' => 'tlaxcala',
             'disponibilidad' => 'medio_tiempo',
         ]);
@@ -63,6 +74,7 @@ class VolunteerManagementTest extends TestCase
         $this->put("/voluntarios/{$id}", [
             'id_usuario' => 2,
             'telefono_contacto' => '222-765-4321',
+            'fecha_nacimiento' => '2000-05-10',
             'zona_asignada' => 'tlaxcala',
             'disponibilidad' => 'medio_tiempo',
             'fecha_ingreso' => '2026-10-16',
@@ -76,8 +88,8 @@ class VolunteerManagementTest extends TestCase
 
     public function test_delivery_assignment_is_recorded_and_can_be_updated_and_removed(): void
     {
-        $this->seedUser(1, 'Admin', 'Administrador');
-        $this->seedUser(2, 'Ana', 'Voluntario');
+        $this->seedUser(1, 'Admin', 'superadmin');
+        $this->seedUser(2, 'Ana', 'voluntario');
         DB::table('voluntarios')->insert([
             'id_voluntario' => 1,
             'id_usuario' => 2,
@@ -118,8 +130,8 @@ class VolunteerManagementTest extends TestCase
 
     public function test_activity_qr_tokens_are_personal_and_validate_attendance_as_json(): void
     {
-        $this->seedUser(1, 'Ana', 'Voluntario');
-        $this->seedUser(2, 'Luis', 'Voluntario');
+        $this->seedUser(1, 'Ana', 'voluntario');
+        $this->seedUser(2, 'Luis', 'voluntario');
         foreach ([1, 2] as $idUsuario) {
             DB::table('voluntarios')->insert([
                 'id_usuario' => $idUsuario,
@@ -162,8 +174,8 @@ class VolunteerManagementTest extends TestCase
 
     public function test_assigning_volunteer_role_on_create_or_update_provisions_a_profile(): void
     {
-        $this->seedUser(1, 'Admin', 'Administrador');
-        $this->seedUser(2, 'Mario', 'Administrador');
+        $this->seedUser(1, 'Admin', 'superadmin');
+        $this->seedUser(2, 'Mario', 'superadmin');
         $this->actingAs(Usuario::findOrFail(1));
 
         $this->post('/usuarios', [
@@ -173,7 +185,8 @@ class VolunteerManagementTest extends TestCase
             'email' => 'sofia@example.test',
             'password' => 'password123',
             'confirmar_password' => 'password123',
-            'activo' => 1,
+            'estatus' => 'ACTIVO',
+            'sede' => null,
         ])->assertRedirect(route('usuarios.index'));
 
         $sofiaId = (int) DB::table('usuarios')->where('email', 'sofia@example.test')->value('id_usuario');
@@ -189,13 +202,15 @@ class VolunteerManagementTest extends TestCase
             'nombre' => 'Mario',
             'apellido' => 'Administrador',
             'email' => 'mario@example.test',
+            'estatus' => 'ACTIVO',
+            'sede' => null,
         ])->assertRedirect(route('usuarios.index'));
         $this->assertDatabaseHas('voluntarios', ['id_usuario' => 2]);
     }
 
     private function seedUser(int $id, string $nombre, string $rol): void
     {
-        $idRol = DB::table('roles')->where('nombre', $rol)->value('id_rol');
+        $idRol = DB::table('roles')->where('slug', $rol)->value('id_rol');
         DB::table('usuarios')->insert([
             'id_usuario' => $id,
             'id_rol' => $idRol,
@@ -203,7 +218,8 @@ class VolunteerManagementTest extends TestCase
             'apellido' => 'Usuario',
             'email' => "usuario{$id}@example.test",
             'contrasena_hash' => 'hash',
-            'activo' => true,
+            'estatus' => 'ACTIVO',
+            'sede' => null,
             'intentos_fallidos' => 0,
             'created_at' => now(),
         ]);
@@ -227,12 +243,33 @@ class VolunteerManagementTest extends TestCase
         Schema::connection('sqlite')->create('roles', function ($table): void {
             $table->increments('id_rol');
             $table->string('nombre')->unique();
+            $table->string('slug')->unique();
             $table->text('descripcion')->nullable();
             $table->boolean('activo')->default(true);
         });
         DB::table('roles')->insert([
-            ['id_rol' => 1, 'nombre' => 'Administrador'],
-            ['id_rol' => 2, 'nombre' => 'Voluntario'],
+            ['id_rol' => 1, 'nombre' => 'SuperAdmin / Sistemas', 'slug' => 'superadmin'],
+            ['id_rol' => 2, 'nombre' => 'Voluntario / Practicante', 'slug' => 'voluntario'],
+        ]);
+        Schema::connection('sqlite')->create('permisos', function ($table): void {
+            $table->increments('id_permiso');
+            $table->string('slug')->unique();
+            $table->string('modulo');
+            $table->string('descripcion')->nullable();
+        });
+        Schema::connection('sqlite')->create('rol_permiso', function ($table): void {
+            $table->unsignedInteger('id_rol');
+            $table->unsignedInteger('id_permiso');
+            $table->primary(['id_rol', 'id_permiso']);
+        });
+        DB::table('permisos')->insert([
+            'id_permiso' => 1,
+            'slug' => 'users.view',
+            'modulo' => 'Usuarios',
+        ]);
+        DB::table('rol_permiso')->insert([
+            'id_rol' => 1,
+            'id_permiso' => 1,
         ]);
         Schema::connection('sqlite')->create('usuarios', function ($table): void {
             $table->increments('id_usuario');
@@ -241,7 +278,8 @@ class VolunteerManagementTest extends TestCase
             $table->string('apellido');
             $table->string('email')->unique();
             $table->string('contrasena_hash');
-            $table->boolean('activo')->default(true);
+            $table->string('estatus')->default('ACTIVO');
+            $table->string('sede')->nullable();
             $table->integer('intentos_fallidos')->default(0);
             $table->dateTime('fecha_bloqueo_temporal')->nullable();
             $table->dateTime('ultimo_acceso')->nullable();
@@ -251,10 +289,11 @@ class VolunteerManagementTest extends TestCase
             $table->increments('id_voluntario');
             $table->unsignedInteger('id_usuario')->unique();
             $table->string('telefono_contacto', 20)->nullable();
+            $table->date('fecha_nacimiento')->nullable();
             $table->string('zona_asignada')->default('ambas');
             $table->string('disponibilidad');
             $table->boolean('activo')->default(true);
-            $table->date('fecha_ingreso');
+            $table->date('fecha_ingreso')->nullable();
             $table->text('notas')->nullable();
             $table->dateTime('created_at')->nullable();
         });
@@ -282,6 +321,7 @@ class VolunteerManagementTest extends TestCase
             $table->dateTime('fecha_fin');
             $table->string('zona')->default('ambas');
             $table->string('estado')->default('planeada');
+            $table->unsignedInteger('puntos')->default(5);
             $table->unsignedInteger('id_responsable');
             $table->dateTime('creado_en')->nullable();
         });
@@ -295,6 +335,28 @@ class VolunteerManagementTest extends TestCase
             $table->string('token_qr', 64)->nullable()->unique();
             $table->text('observaciones')->nullable();
             $table->unique(['id_voluntario', 'id_actividad']);
+        });
+        Schema::connection('sqlite')->create('bolsa_voluntario', function ($table): void {
+            $table->increments('id_bolsa');
+            $table->unsignedInteger('id_voluntario')->unique();
+            $table->unsignedInteger('puntos_canjeables')->default(0);
+            $table->unsignedInteger('puntos_campamento')->default(0);
+            $table->unsignedTinyInteger('faltas_injustificadas')->default(0);
+            $table->boolean('campamento_bloqueado')->default(false);
+            $table->dateTime('updated_at')->nullable();
+        });
+        Schema::connection('sqlite')->create('movimientos_puntos', function ($table): void {
+            $table->increments('id_movimiento_puntos');
+            $table->unsignedInteger('id_voluntario');
+            $table->string('tipo');
+            $table->integer('puntos_canjeables')->default(0);
+            $table->integer('puntos_campamento')->default(0);
+            $table->unsignedInteger('id_actividad')->nullable();
+            $table->unsignedInteger('id_canje')->nullable();
+            $table->string('motivo')->nullable();
+            $table->unsignedInteger('id_usuario')->nullable();
+            $table->dateTime('fecha');
+            $table->unique(['id_voluntario', 'id_actividad', 'tipo']);
         });
     }
 }

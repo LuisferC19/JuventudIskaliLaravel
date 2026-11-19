@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AsignacionVoluntarioRequest;
+use App\Services\PuntosService;
 use App\Services\VoluntarioWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -14,13 +15,17 @@ use Illuminate\View\View;
 
 class VoluntarioController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $voluntarios = DB::table('voluntarios as v')
+        $zonasVisibles = $request->user()->zonasVisibles();
+        $consultaVoluntarios = DB::table('voluntarios as v')
             ->join('usuarios as u', 'u.id_usuario', '=', 'v.id_usuario')
             ->orderBy('u.nombre')
-            ->orderBy('u.apellido')
-            ->get(['v.*', 'u.nombre', 'u.apellido', 'u.email']);
+            ->orderBy('u.apellido');
+        if ($zonasVisibles !== null) {
+            $consultaVoluntarios->whereIn('v.zona_asignada', $zonasVisibles);
+        }
+        $voluntarios = $consultaVoluntarios->get(['v.*', 'u.nombre', 'u.apellido', 'u.email']);
 
         $actividades = DB::table('actividades')
             ->whereIn('estado', ['planeada', 'en_curso'])
@@ -58,10 +63,14 @@ class VoluntarioController extends Controller
         return redirect()->route('voluntarios.index')->with('success', 'Voluntario registrado correctamente.');
     }
 
-    public function edit(int $voluntario): View
+    public function edit(Request $request, int $voluntario): View
     {
         $perfil = DB::table('voluntarios')->where('id_voluntario', $voluntario)->first();
         abort_if(!$perfil, 404);
+        $zonasVisibles = $request->user()->zonasVisibles();
+        if ($zonasVisibles !== null) {
+            abort_unless(in_array($perfil->zona_asignada, $zonasVisibles, true), 403);
+        }
 
         return view('voluntarios_editar', [
             'voluntario' => $perfil,
@@ -71,7 +80,12 @@ class VoluntarioController extends Controller
 
     public function update(Request $request, int $voluntario): RedirectResponse
     {
-        abort_unless(DB::table('voluntarios')->where('id_voluntario', $voluntario)->exists(), 404);
+        $perfil = DB::table('voluntarios')->where('id_voluntario', $voluntario)->first();
+        abort_if(!$perfil, 404);
+        $zonasVisibles = $request->user()->zonasVisibles();
+        if ($zonasVisibles !== null) {
+            abort_unless(in_array($perfil->zona_asignada, $zonasVisibles, true), 403);
+        }
         $datos = $this->validarPerfil($request, $voluntario);
         $datos['activo'] = $request->boolean('activo');
         DB::table('voluntarios')->where('id_voluntario', $voluntario)->update($datos);
@@ -79,8 +93,14 @@ class VoluntarioController extends Controller
         return redirect()->route('voluntarios.index')->with('success', 'Voluntario actualizado correctamente.');
     }
 
-    public function destroy(int $voluntario): RedirectResponse
+    public function destroy(Request $request, int $voluntario): RedirectResponse
     {
+        $perfil = DB::table('voluntarios')->where('id_voluntario', $voluntario)->first();
+        abort_if(!$perfil, 404);
+        $zonasVisibles = $request->user()->zonasVisibles();
+        if ($zonasVisibles !== null) {
+            abort_unless(in_array($perfil->zona_asignada, $zonasVisibles, true), 403);
+        }
         $actualizado = DB::table('voluntarios')
             ->where('id_voluntario', $voluntario)
             ->update(['activo' => false]);
@@ -91,6 +111,14 @@ class VoluntarioController extends Controller
 
     public function storeAsignacion(AsignacionVoluntarioRequest $request): RedirectResponse
     {
+        $zonasVisibles = $request->user()->zonasVisibles();
+        if ($zonasVisibles !== null) {
+            $zonaAsignada = DB::table('voluntarios')
+                ->where('id_voluntario', $request->validated('id_voluntario'))
+                ->value('zona_asignada');
+            abort_unless(in_array($zonaAsignada, $zonasVisibles, true), 403);
+        }
+
         app(VoluntarioWorkflowService::class)->crearAsignacion(
             $request->validated(),
             (int) $request->user()->id_usuario
@@ -113,22 +141,26 @@ class VoluntarioController extends Controller
         return redirect()->route('voluntarios.index')->with('success', 'Asignación eliminada correctamente.');
     }
 
-    public function asistencia(int $actividad): JsonResponse
+    public function asistencia(Request $request, int $actividad): JsonResponse
     {
         abort_unless(
             DB::table('actividades')->where('id_actividad', $actividad)->exists(),
             404
         );
 
-        $asistencia = DB::table('voluntarios as v')
+        $zonasVisibles = $request->user()->zonasVisibles();
+        $consultaAsistencia = DB::table('voluntarios as v')
             ->join('usuarios as u', 'u.id_usuario', '=', 'v.id_usuario')
             ->leftJoin('asistencia_voluntarios as a', function ($join) use ($actividad): void {
                 $join->on('a.id_voluntario', '=', 'v.id_voluntario')
                     ->where('a.id_actividad', '=', $actividad);
             })
             ->where('v.activo', true)
-            ->orderBy('u.nombre')
-            ->get([
+            ->orderBy('u.nombre');
+        if ($zonasVisibles !== null) {
+            $consultaAsistencia->whereIn('v.zona_asignada', $zonasVisibles);
+        }
+        $asistencia = $consultaAsistencia->get([
                 'a.id_asistencia',
                 'v.id_voluntario',
                 'u.nombre',
@@ -183,6 +215,13 @@ class VoluntarioController extends Controller
                 DB::table('asistencia_voluntarios')
                     ->where('id_asistencia', $registro->id_asistencia)
                     ->update(['presente' => true, 'metodo' => 'manual', 'token_qr' => null]);
+                if (! $registro->presente) {
+                    app(PuntosService::class)->otorgarPorAsistencia(
+                        (int) $datos['id_voluntario'],
+                        (int) $datos['id_actividad'],
+                        auth()->id()
+                    );
+                }
 
                 return;
             }
@@ -193,6 +232,11 @@ class VoluntarioController extends Controller
                 'metodo' => 'manual',
                 'presente' => true,
             ]);
+            app(PuntosService::class)->otorgarPorAsistencia(
+                (int) $datos['id_voluntario'],
+                (int) $datos['id_actividad'],
+                auth()->id()
+            );
         });
 
         return response()->json(['success' => true, 'message' => 'Asistencia registrada correctamente.']);
@@ -287,7 +331,7 @@ class VoluntarioController extends Controller
     private function usuariosDisponibles(?int $idActual = null): \Illuminate\Support\Collection
     {
         return DB::table('usuarios')
-            ->where('activo', true)
+            ->where('estatus', 'ACTIVO')
             ->where(function ($query) use ($idActual): void {
                 $query->whereNotIn('id_usuario', DB::table('voluntarios')->select('id_usuario'));
                 if ($idActual !== null) {
@@ -313,6 +357,7 @@ class VoluntarioController extends Controller
                 $unicoUsuario,
             ],
             'telefono_contacto' => ['nullable', 'string', 'max:20'],
+            'fecha_nacimiento' => ['required', 'date_format:Y-m-d', 'before:today', 'after:1900-01-01'],
             'zona_asignada' => ['required', Rule::in(['san_martin', 'tlaxcala', 'ambas', 'otra'])],
             'disponibilidad' => ['required', Rule::in(['tiempo_completo', 'medio_tiempo', 'fines_semana', 'bajo_demanda'])],
             'fecha_ingreso' => ['required', 'date_format:Y-m-d'],

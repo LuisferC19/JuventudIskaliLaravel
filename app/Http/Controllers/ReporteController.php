@@ -28,7 +28,7 @@ class ReporteController extends Controller
         $query = match ($tipo) {
             'donadores' => $this->donadores(),
             'beneficiarios' => $this->beneficiarios(),
-            'campanas' => DB::table('campanas')->select('nombre', 'tipo_meta', 'fecha_inicio', 'fecha_cierre', 'estado', 'meta_economica'),
+            'campanas' => DB::table('campanas')->select('nombre', 'tipo_meta', 'fecha_inicio', 'fecha_cierre', 'estado', 'meta_cantidad'),
         };
 
         $campoFecha = $tipo === 'campanas' ? 'fecha_inicio' : 'created_at';

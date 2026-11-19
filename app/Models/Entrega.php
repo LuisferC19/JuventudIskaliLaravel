@@ -27,8 +27,6 @@ class Entrega extends Model
         return [
             'cantidad_entregada' => 'decimal:2',
             'fecha_entrega' => 'datetime',
-            'latitud' => 'decimal:7',
-            'longitud' => 'decimal:7',
         ];
     }
 }

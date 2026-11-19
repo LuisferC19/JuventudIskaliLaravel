@@ -2,11 +2,12 @@
 
 namespace App\Services;
 
-use App\Contracts\InventarioService as InventarioServiceContract;
+use App\Contracts\InventarioServiceInterface;
 use Illuminate\Support\Facades\DB;
+use JsonException;
 use RuntimeException;
 
-class InventarioService implements InventarioServiceContract
+class InventarioService implements InventarioServiceInterface
 {
     private const REFERENCIAS_VALIDAS = ['donacion', 'entrega', 'ajuste_manual'];
 
@@ -145,6 +146,11 @@ class InventarioService implements InventarioServiceContract
             $inventario = $this->obtenerOFilaInventario($id_tipo_bien, $id_usuario);
             $disponibleAnterior = (float) $inventario->cantidad_disponible;
             $disponiblePosterior = $nuevaCantidadRecibida - $nuevaCantidadEntregada;
+            $motivoPersistido = $this->agregarSnapshotAjuste($motivo, [
+                'recibida' => (string) $inventario->cantidad_total_recibida,
+                'entregada' => (string) $inventario->cantidad_total_entregada,
+            ]);
+
             DB::table('inventario')
                 ->where('id_inventario', $inventario->id_inventario)
                 ->update([
@@ -162,11 +168,89 @@ class InventarioService implements InventarioServiceContract
                 $disponiblePosterior,
                 'ajuste_manual',
                 null,
-                $motivo
+                $motivoPersistido
             );
 
             return true;
         });
+    }
+
+    public function revertirUltimoAjuste(int $id_tipo_bien, int $id_usuario): bool
+    {
+        if ($id_tipo_bien <= 0 || $id_usuario <= 0) {
+            return false;
+        }
+
+        return DB::transaction(function () use ($id_tipo_bien, $id_usuario): bool {
+            $inventario = DB::table('inventario')
+                ->where('id_tipo_bien', $id_tipo_bien)
+                ->lockForUpdate()
+                ->first();
+            if (! $inventario) {
+                return false;
+            }
+
+            $ultimoAjuste = DB::table('movimientos_inventario')
+                ->where('id_inventario', $inventario->id_inventario)
+                ->where('tipo_movimiento', 'ajuste')
+                ->orderByDesc('fecha')
+                ->orderByDesc('id_movimiento')
+                ->lockForUpdate()
+                ->first();
+            $ultimoMovimiento = DB::table('movimientos_inventario')
+                ->where('id_inventario', $inventario->id_inventario)
+                ->orderByDesc('fecha')
+                ->orderByDesc('id_movimiento')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $ultimoAjuste || ! $ultimoMovimiento
+                || (int) $ultimoAjuste->id_movimiento !== (int) $ultimoMovimiento->id_movimiento) {
+                return false;
+            }
+
+            $snapshot = $this->extraerSnapshotAjuste((string) ($ultimoAjuste->motivo ?? ''));
+            if ($snapshot === null) {
+                return false;
+            }
+
+            $disponibleAnterior = (float) $snapshot['recibida'] - (float) $snapshot['entregada'];
+            $disponibleActual = (float) $inventario->cantidad_disponible;
+            if (abs($disponibleAnterior - (float) $ultimoAjuste->cantidad_anterior) > 0.001
+                || abs($disponibleActual - (float) $ultimoAjuste->cantidad_posterior) > 0.001) {
+                return false;
+            }
+
+            $motivoPersistido = $this->agregarSnapshotAjuste(
+                'Reversión del ajuste #'.(int) $ultimoAjuste->id_movimiento,
+                [
+                    'recibida' => (string) $inventario->cantidad_total_recibida,
+                    'entregada' => (string) $inventario->cantidad_total_entregada,
+                ]
+            );
+
+            DB::table('inventario')
+                ->where('id_inventario', $inventario->id_inventario)
+                ->update([
+                    'cantidad_total_recibida' => $snapshot['recibida'],
+                    'cantidad_total_entregada' => $snapshot['entregada'],
+                    'id_usuario_actualizador' => $id_usuario,
+                ]);
+
+            $this->insertarMovimiento(
+                (int) $inventario->id_inventario,
+                $id_usuario,
+                'ajuste',
+                abs($disponibleAnterior - $disponibleActual),
+                $disponibleActual,
+                $disponibleAnterior,
+                'ajuste_manual',
+                null,
+                $motivoPersistido
+            );
+
+            return true;
+        }, 3);
     }
 
     private function movimientoValido(
@@ -229,6 +313,39 @@ class InventarioService implements InventarioServiceContract
             'id_referencia' => $id_referencia,
             'motivo' => $motivo,
         ]);
+    }
+
+    private function agregarSnapshotAjuste(string $motivo, array $snapshot): string
+    {
+        return rtrim($motivo)."\n[iskali_inventory_snapshot_v1:"
+            .json_encode($snapshot, JSON_THROW_ON_ERROR).']';
+    }
+
+    private function extraerSnapshotAjuste(string $motivo): ?array
+    {
+        if (! preg_match('/(?:\r?\n)?\[iskali_inventory_snapshot_v1:(\{.*\})\]$/sD', $motivo, $matches)) {
+            return null;
+        }
+
+        try {
+            $snapshot = json_decode($matches[1], true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return null;
+        }
+
+        if (! is_array($snapshot)
+            || ! isset($snapshot['recibida'], $snapshot['entregada'])
+            || ! is_numeric($snapshot['recibida'])
+            || ! is_numeric($snapshot['entregada'])
+            || ! is_finite((float) $snapshot['recibida'])
+            || ! is_finite((float) $snapshot['entregada'])
+            || (float) $snapshot['recibida'] < 0
+            || (float) $snapshot['entregada'] < 0
+            || (float) $snapshot['entregada'] > (float) $snapshot['recibida']) {
+            return null;
+        }
+
+        return $snapshot;
     }
 
 }

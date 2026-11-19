@@ -2,38 +2,110 @@
 
 namespace App\Services;
 
-use App\Models\PermisoRol;
 use App\Models\Usuario;
-use Illuminate\Support\Collection;
 
 class PermisosUsuario
 {
-    /** @var Collection<string, PermisoRol>|null */
-    private ?Collection $permisos = null;
+    private const MAPA = [
+        'dashboard' => ['ver' => ['dashboard.view']],
+        'usuarios' => [
+            'ver' => ['users.view'],
+            'crear' => ['users.create'],
+            'editar' => ['users.create'],
+            'eliminar' => ['roles.manage'],
+        ],
+        'voluntarios' => [
+            'ver' => ['users.view', 'users.view_zone'],
+            'crear' => ['attendance.scan'],
+            'editar' => ['attendance.scan'],
+            'eliminar' => ['users.block'],
+        ],
+        'planning' => [
+            'ver' => ['events.create', 'events.edit'],
+            'crear' => ['events.create'],
+            'editar' => ['events.edit'],
+            'eliminar' => ['events.edit'],
+        ],
+        'campanas' => [
+            'ver' => ['campaigns.manage'],
+            'crear' => ['campaigns.manage'],
+            'editar' => ['campaigns.manage'],
+            'eliminar' => ['campaigns.manage'],
+        ],
+        'donaciones' => [
+            'ver' => ['donations.create', 'reports.generate'],
+            'crear' => ['donations.create'],
+            'editar' => ['donations.create'],
+            'eliminar' => ['donations.create'],
+        ],
+        'donadores' => [
+            'ver' => ['donors.manage'],
+            'crear' => ['donors.manage'],
+            'editar' => ['donors.manage'],
+            'eliminar' => ['donors.manage'],
+        ],
+        'beneficiarios' => [
+            'ver' => ['beneficiaries.manage'],
+            'crear' => ['beneficiaries.manage'],
+            'editar' => ['beneficiaries.manage'],
+            'eliminar' => ['beneficiaries.manage'],
+        ],
+        'entregas' => [
+            'ver' => ['deliveries.view'],
+            'crear' => ['deliveries.create'],
+            'editar' => ['deliveries.create'],
+            'eliminar' => ['deliveries.create'],
+        ],
+        'inventario' => [
+            'ver' => ['inventory.view'],
+            'editar' => ['inventory.adjust'],
+        ],
+        'gamificacion' => [
+            'ver' => ['donors.manage', 'rewards.manage', 'penalties.manage'],
+            'crear' => ['rewards.manage'],
+            'editar' => ['rewards.manage'],
+            'eliminar' => ['rewards.manage'],
+        ],
+        'reportes' => ['ver' => ['reports.generate']],
+        'respaldos' => [
+            'ver' => ['backups.manage'],
+            'crear' => ['backups.manage'],
+            'editar' => ['backups.manage'],
+        ],
+        'notificaciones' => [
+            'ver' => '*',
+            'editar' => '*',
+        ],
+    ];
 
-    private ?int $usuarioId = null;
-
-    public function usuarioPuede(?Usuario $usuario, string $modulo, string $accion): bool
+    public function usuarioPuede(?Usuario $usuario, string $modulo, ?string $accion = null): bool
     {
-        if (! $usuario) {
+        if (! $usuario || $usuario->estatus !== Usuario::ESTATUS_ACTIVO) {
             return false;
         }
 
-        if ($this->usuarioId !== $usuario->id_usuario) {
-            $this->usuarioId = $usuario->id_usuario;
-            $this->permisos = PermisoRol::where('id_rol', $usuario->id_rol)
-                ->get()
-                ->keyBy(fn (PermisoRol $permiso) => mb_strtolower($permiso->modulo));
+        $modulo = mb_strtolower($modulo);
+
+        if ($accion === null) {
+            return $usuario->tienePermiso($modulo);
         }
 
-        $columna = [
-            'ver' => 'puede_ver',
-            'crear' => 'puede_crear',
-            'editar' => 'puede_editar',
-            'eliminar' => 'puede_eliminar',
-        ][$accion] ?? null;
+        $accion = mb_strtolower($accion);
+        $permisos = self::MAPA[$modulo][$accion] ?? null;
+        if ($permisos === null) {
+            return false;
+        }
 
-        return $columna !== null
-            && (bool) ($this->permisos->get(mb_strtolower($modulo))?->{$columna} ?? false);
+        if ($permisos === '*') {
+            return true;
+        }
+
+        foreach ($permisos as $permiso) {
+            if ($usuario->tienePermiso($permiso)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

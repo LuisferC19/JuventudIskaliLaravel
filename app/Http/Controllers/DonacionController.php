@@ -40,15 +40,10 @@ class DonacionController extends Controller
             ->leftJoin('usuarios as u', 'u.id_usuario', '=', 'd.id_usuario_registrador')
             ->leftJoin('donaciones_especie as de', 'de.id_donacion', '=', 'd.id_donacion')
             ->leftJoin('tipos_bien as tb', 'tb.id_tipo_bien', '=', 'de.id_tipo_bien')
-            ->leftJoin('donaciones_economicas as deco', 'deco.id_donacion', '=', 'd.id_donacion')
-            ->select('d.id_donacion', 'd.fecha_recepcion', 'd.estado', 'd.evidencia_url')
+            ->select('d.id_donacion', 'd.fecha_recepcion', 'd.estado', 'd.evidencia_url', 'de.cantidad', 'de.unidad_medida', 'tb.nombre as producto')
             ->selectRaw("COALESCE(c.nombre, 'Campaña no disponible') AS campana")
             ->selectRaw("CASE WHEN dn.id_donador IS NULL THEN 'Donador no disponible' ELSE COALESCE(NULLIF(dm.razon_social, ''), NULLIF(TRIM(CONCAT(COALESCE(df.nombre, ''), ' ', COALESCE(df.apellido, ''))), ''), NULLIF(dg.nombre_grupo, ''), 'Anónimo') END AS donador")
             ->selectRaw("COALESCE(NULLIF(TRIM(CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, ''))), ''), 'Usuario no disponible') AS registrado_por")
-            ->selectRaw("CASE WHEN de.id_donacion IS NULL THEN 'economica' ELSE 'especie' END AS tipo")
-            ->selectRaw("COALESCE(tb.nombre, 'Donación económica') AS detalle")
-            ->selectRaw('COALESCE(de.cantidad, deco.monto) AS cantidad_monto')
-            ->selectRaw('COALESCE(de.unidad_medida, deco.moneda) AS unidad_medida')
             ->when($request->filled('estado'), fn ($query) => $query->where('d.estado', $request->input('estado')))
             ->orderByDesc('d.id_donacion')
             ->get();
@@ -93,12 +88,10 @@ class DonacionController extends Controller
             ->leftJoin('campanas as c', 'c.id_campana', '=', 'd.id_campana')
             ->leftJoin('donaciones_especie as de', 'de.id_donacion', '=', 'd.id_donacion')
             ->leftJoin('tipos_bien as tb', 'tb.id_tipo_bien', '=', 'de.id_tipo_bien')
-            ->leftJoin('donaciones_economicas as deco', 'deco.id_donacion', '=', 'd.id_donacion')
             ->where('d.id_donacion', $donacion)
-            ->select('d.*', 'de.id_tipo_bien', 'de.descripcion', 'de.cantidad', 'de.unidad_medida', 'tb.nombre as tipo_bien', 'deco.monto', 'deco.moneda', 'deco.metodo_pago', 'deco.referencia_pago')
+            ->select('d.*', 'de.id_tipo_bien', 'de.descripcion', 'de.cantidad', 'de.unidad_medida', 'tb.nombre as producto')
             ->selectRaw("COALESCE(c.nombre, 'Campaña no disponible') AS campana")
             ->selectRaw("CASE WHEN dn.id_donador IS NULL THEN 'Donador no disponible' ELSE COALESCE(NULLIF(dm.razon_social, ''), NULLIF(TRIM(CONCAT(COALESCE(df.nombre, ''), ' ', COALESCE(df.apellido, ''))), ''), NULLIF(dg.nombre_grupo, ''), 'Anónimo') END AS donador")
-            ->selectRaw("CASE WHEN de.id_donacion IS NULL THEN 'economica' ELSE 'especie' END AS tipo")
             ->first();
         abort_unless($detalle, 404);
 
@@ -107,19 +100,18 @@ class DonacionController extends Controller
 
     public function edit(string $donacion): View
     {
-        $registro = Donacion::with(['especie', 'economica'])->findOrFail($donacion);
+        $registro = Donacion::with('especie.tipoBien')->findOrFail($donacion);
         abort_unless($registro->estado === 'pendiente', 403, 'Solo se pueden editar donaciones pendientes.');
 
         return view('donaciones_editar', $this->formOptions() + [
             'donacion' => $registro,
             'modoEdicion' => true,
-            'tipoDonacion' => $registro->especie ? 'especie' : 'economica',
         ]);
     }
 
     public function update(DonacionRequest $request, string $donacion): RedirectResponse
     {
-        $registro = Donacion::with(['especie', 'economica'])->findOrFail($donacion);
+        $registro = Donacion::with('especie')->findOrFail($donacion);
 
         if ($request->exists('estado')) {
             $datos = $request->validated();

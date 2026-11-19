@@ -41,7 +41,7 @@ class CampanaController extends Controller
                 'a.id_avance',
                 'a.descripcion',
                 'a.porcentaje_avance',
-                'a.monto_recaudado',
+                'a.cantidad_acopiada',
                 'a.fecha_registro',
                 'c.nombre as nombre_campana',
                 DB::raw("CONCAT_WS(' ', u.nombre, u.apellido) AS reportado_por")

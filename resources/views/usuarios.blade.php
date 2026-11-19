@@ -20,12 +20,22 @@
 
         <div class="card" style="flex:1;min-width:150px;padding:20px;text-align:center;">
           <div style="font-size:32px;font-weight:700;color:#4caf50;">{{ $usuariosActivos }}</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:4px;">Usuarios activos</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px;">Activos</div>
+        </div>
+
+        <div class="card" style="flex:1;min-width:150px;padding:20px;text-align:center;">
+          <div style="font-size:32px;font-weight:700;color:#ef6c00;">{{ $usuariosPendientes }}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px;">Pendientes</div>
+        </div>
+
+        <div class="card" style="flex:1;min-width:150px;padding:20px;text-align:center;">
+          <div style="font-size:32px;font-weight:700;color:#c62828;">{{ $usuariosBloqueados }}</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px;">Bloqueados</div>
         </div>
 
         <div class="card" style="flex:1;min-width:150px;padding:20px;text-align:center;">
           <div style="font-size:32px;font-weight:700;color:#f44336;">{{ $usuariosInactivos }}</div>
-          <div style="font-size:13px;color:var(--muted);margin-top:4px;">Usuarios inactivos</div>
+          <div style="font-size:13px;color:var(--muted);margin-top:4px;">Inactivos</div>
         </div>
 
       </div>
@@ -46,7 +56,7 @@
             >
             @can('permiso', ['usuarios', 'crear'])
               <button class="btn btn-primary btn-icon" type="button" onclick="openModal('modal-crear-usuario')">
-             <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/Nuevo.png') }}" alt="Nuevo" style="width:16px;height:16px;">
+             <img src="{{ asset('iconos/Nuevo.png') }}" alt="Nuevo" style="width:16px;height:16px;">
               Nuevo Usuario
               </button>
             @endcan
@@ -73,7 +83,13 @@
               @forelse ($usuarios as $usuario)
                 @php
                   $nombre = trim(($usuario->nombre ?? '') . ' ' . ($usuario->apellido ?? ''));
-                  $activo = (bool) $usuario->activo;
+                  $coloresEstatus = [
+                    'ACTIVO' => ['#e8f5e9', '#2e7d32'],
+                    'PENDIENTE' => ['#fff3e0', '#ef6c00'],
+                    'BLOQUEADO' => ['#ffebee', '#c62828'],
+                    'INACTIVO' => ['#eeeeee', '#616161'],
+                  ];
+                  [$fondoEstatus, $colorEstatus] = $coloresEstatus[$usuario->estatus] ?? $coloresEstatus['INACTIVO'];
                 @endphp
                 <tr style="border-bottom:1px solid var(--border,#eee);" onmouseover="this.style.background='var(--surface,#fafafa)'" onmouseout="this.style.background=''">
                   <td style="padding:12px 16px;color:var(--muted,#999);font-size:13px;">#{{ $usuario->id_usuario }}</td>
@@ -90,13 +106,23 @@
                     <span style="background:#e8eaf6;color:#3949ab;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;">{{ $usuario->rol ?? 'Sin rol' }}</span>
                   </td>
                   <td style="padding:12px 16px;text-align:center;">
-                    <span style="background:{{ $activo ? '#e8f5e9' : '#ffebee' }};color:{{ $activo ? '#2e7d32' : '#c62828' }};padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;">● {{ $activo ? 'Activo' : 'Inactivo' }}</span>
+                    <span style="background:{{ $fondoEstatus }};color:{{ $colorEstatus }};padding:3px 10px;border-radius:12px;font-size:12px;font-weight:500;">● {{ ucfirst(strtolower($usuario->estatus)) }}</span>
                   </td>
                   <td style="padding:12px 16px;font-size:12px;color:var(--muted,#999);">{{ $usuario->created_at ? \Illuminate\Support\Carbon::parse($usuario->created_at)->format('d/m/Y') : '—' }}</td>
                   <td style="padding:12px 16px;text-align:center;white-space:nowrap;">
                     @can('permiso', ['usuarios', 'editar'])
                       <a class="btn btn-secondary btn-sm" href="{{ route('usuarios.edit', $usuario->id_usuario) }}">Editar</a>
-                      @if ((int) ($usuario->intentos_fallidos ?? 0) >= 5)
+                    @endcan
+                    @can('permiso', ['users.approve'])
+                      @if ($usuario->estatus === 'PENDIENTE')
+                        <form method="POST" action="{{ route('usuarios.aprobar', $usuario->id_usuario) }}" style="display:inline;">
+                          @csrf
+                          <button class="btn btn-secondary btn-sm" type="submit">Aprobar</button>
+                        </form>
+                      @endif
+                    @endcan
+                    @can('permiso', ['users.block'])
+                      @if ($usuario->estatus === 'BLOQUEADO')
                         <form method="POST" action="{{ route('usuarios.desbloquear', $usuario->id_usuario) }}" style="display:inline;">
                           @csrf
                           <button class="btn btn-secondary btn-sm" type="submit">Desbloquear</button>
@@ -140,7 +166,7 @@
 
     <div class="modal-header">
       <h3>
-        <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/agregar_usuario_circulo.png') }}" alt="Nuevo usuario" style="width:24px;height:24px;">
+        <img src="{{ asset('iconos/agregar_usuario_circulo.png') }}" alt="Nuevo usuario" style="width:24px;height:24px;">
         Crear Nuevo Usuario
       </h3>
       <button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('modal-crear-usuario')">✕</button>
@@ -250,19 +276,33 @@
                     data-msg_required="Debes seleccionar un rol.">
               <option value="">— Selecciona un rol —</option>
               @foreach ($roles as $rol)
-                <option value="{{ $rol->id_rol }}" @selected(old('id_rol') == $rol->id_rol)>{{ $rol->nombre }}</option>
+                <option value="{{ $rol->id_rol }}" data-slug="{{ $rol->slug }}" @selected(old('id_rol') == $rol->id_rol)>{{ $rol->nombre }}</option>
               @endforeach
             </select>
             <div class="field-error">@error('id_rol'){{ $message }}@enderror</div>
           </div>
 
-          <!-- Activo -->
-          <div class="form-group full form-checkbox">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-              <input type="hidden" name="activo" value="0">
-              <input type="checkbox" name="activo" value="1" @checked(old('activo', true))>
-              <span>Usuario activo al crear</span>
-            </label>
+          <!-- Estatus -->
+          <div class="form-group">
+            <label for="c_estatus">Estatus del usuario <span style="color:#f44336;">*</span></label>
+            <select id="c_estatus" name="estatus" required>
+              @foreach (['ACTIVO', 'PENDIENTE', 'INACTIVO', 'BLOQUEADO'] as $estatus)
+                <option value="{{ $estatus }}" @selected(old('estatus', 'ACTIVO') === $estatus)>{{ ucfirst(strtolower($estatus)) }}</option>
+              @endforeach
+            </select>
+            <div class="field-error">@error('estatus'){{ $message }}@enderror</div>
+          </div>
+
+          <!-- Sede -->
+          <div class="form-group full" id="c_campo-sede" style="display:none;">
+            <label for="c_sede">Sede <span style="color:#f44336;">*</span></label>
+            <select id="c_sede" name="sede">
+              <option value="">— Selecciona una sede —</option>
+              @foreach (['san_martin' => 'San Martín', 'tlaxcala' => 'Tlaxcala', 'ambas' => 'Ambas'] as $valorSede => $nombreSede)
+                <option value="{{ $valorSede }}" @selected(old('sede') === $valorSede)>{{ $nombreSede }}</option>
+              @endforeach
+            </select>
+            <div class="field-error">@error('sede'){{ $message }}@enderror</div>
           </div>
 
         </div><!-- /form-grid -->
@@ -273,7 +313,7 @@
           Cancelar
         </button>
         <button type="submit" class="btn btn-primary">
-          <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/aprobado_carpeta.png') }}" alt="Guardar" style="width:16px;height:16px;">
+          <img src="{{ asset('iconos/aprobado_carpeta.png') }}" alt="Guardar" style="width:16px;height:16px;">
           Guardar Usuario
         </button>
       </div>
@@ -284,6 +324,20 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  var rol = document.getElementById('c_rol');
+  var campoSede = document.getElementById('c_campo-sede');
+  var sede = document.getElementById('c_sede');
+  function actualizarSede() {
+    var coordinador = rol && rol.selectedOptions[0] && rol.selectedOptions[0].dataset.slug === 'coordinador';
+    campoSede.style.display = coordinador ? '' : 'none';
+    sede.required = coordinador;
+    if (!coordinador) sede.value = '';
+  }
+  if (rol && campoSede && sede) {
+    rol.addEventListener('change', actualizarSede);
+    actualizarSede();
+  }
+
   var overlay = document.getElementById('modal-crear-usuario');
   if (overlay) {
     overlay.addEventListener('click', function (e) {

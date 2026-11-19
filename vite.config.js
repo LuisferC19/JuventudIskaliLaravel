@@ -12,7 +12,6 @@ export default defineConfig({
                 'resources/css/Landing_Styles.css',
                 'resources/js/app.js',
                 'resources/js/ModuleShell.js',
-                'resources/js/resource-assets.js',
                 'resources/js/AppSistema.js',
                 'resources/js/Validaciones.js',
             ],

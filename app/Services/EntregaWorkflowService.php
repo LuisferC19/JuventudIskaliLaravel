@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Contracts\InventarioService;
+use App\Contracts\InventarioServiceInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use LogicException;
@@ -115,7 +115,7 @@ class EntregaWorkflowService
             return;
         }
 
-        $inventario = app(InventarioService::class);
+        $inventario = app(InventarioServiceInterface::class);
         if (!$inventario->registrarSalida(
             (int) $especie->id_tipo_bien,
             (float) $entrega->cantidad_entregada,
@@ -138,7 +138,7 @@ class EntregaWorkflowService
             return;
         }
 
-        $inventario = app(InventarioService::class);
+        $inventario = app(InventarioServiceInterface::class);
         if (!$inventario->registrarEntrada(
             (int) $especie->id_tipo_bien,
             (float) $entrega->cantidad_entregada,

@@ -6,11 +6,11 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>@yield('title', 'Juventud Iskali')</title>
   @if (request()->routeIs('landing'))
-    @vite(['resources/css/Landing_Styles.css', 'resources/js/resource-assets.js', 'resources/js/AppSistema.js'])
-  @elseif (request()->routeIs('login', 'registro', 'recuperar_password'))
-    @vite(['resources/css/Login_Styles.css', 'resources/js/resource-assets.js'])
+    @vite(['resources/css/Landing_Styles.css', 'resources/js/AppSistema.js'])
+  @elseif (request()->routeIs('login', 'registro', 'recuperar_password', 'recuperar_password.reset'))
+    @vite(['resources/css/Login_Styles.css'])
   @else
-    @vite(['resources/js/ModuleShell.js', 'resources/js/resource-assets.js'])
+    @vite(['resources/js/ModuleShell.js'])
   @endif
 </head>
 <body class="@yield('body-class')">

@@ -12,30 +12,20 @@ class DashboardService
 
     public function datos(): array
     {
-        $econTotal = $this->valor(fn () => DB::table('donaciones_economicas')->sum('monto'));
-        $econMes = $this->valor(fn () => DB::table('donaciones as d')
-            ->join('donaciones_economicas as de', 'de.id_donacion', '=', 'd.id_donacion')
-            ->whereYear('d.fecha_recepcion', now()->year)
-            ->whereMonth('d.fecha_recepcion', now()->month)
-            ->sum('de.monto'));
         $inventario = $this->valor(fn () => DB::table('inventario')->count());
 
-        $mensuales = array_fill(0, 12, 0.0);
-        $especieMensual = array_fill(0, 12, 0.0);
+        $articulosPorMes = array_fill(0, 12, 0.0);
         foreach ($this->filas(fn () => DB::table('donaciones as d')
-            ->leftJoin('donaciones_economicas as de', 'de.id_donacion', '=', 'd.id_donacion')
             ->leftJoin('donaciones_especie as de2', 'de2.id_donacion', '=', 'd.id_donacion')
             ->whereYear('d.fecha_recepcion', now()->year)
-            ->select(['d.fecha_recepcion', 'de.monto', 'de2.cantidad'])
+            ->select(['d.fecha_recepcion', 'de2.cantidad'])
             ->get()) as $row) {
             $month = (int) Carbon::parse($row->fecha_recepcion)->format('n') - 1;
-            $mensuales[$month] += (float) ($row->monto ?? 0);
-            $especieMensual[$month] += (float) ($row->cantidad ?? 0);
+            $articulosPorMes[$month] += (float) ($row->cantidad ?? 0);
         }
-        $monthlyDemo = array_sum($mensuales) === 0.0 && array_sum($especieMensual) === 0.0;
+        $monthlyDemo = array_sum($articulosPorMes) === 0.0;
         if ($monthlyDemo) {
-            $mensuales = [0, 0, 5200, 18000, 25000, 42000, 0, 0, 0, 0, 0, 0];
-            $especieMensual = [0, 0, 10, 25, 15, 30, 0, 0, 0, 0, 0, 0];
+            $articulosPorMes = [0, 0, 10, 25, 15, 30, 0, 0, 0, 0, 0, 0];
         }
 
         $estadoDonaciones = $this->seriePorClave(
@@ -43,13 +33,22 @@ class DashboardService
             ['verificada' => 0, 'recibida' => 0, 'pendiente' => 0, 'rechazada' => 0],
             ['verificada' => 9, 'recibida' => 4, 'pendiente' => 1, 'rechazada' => 1]
         );
-        $tiposDonacion = [
-            'Económica' => $this->valor(fn () => DB::table('donaciones_economicas')->count()),
-            'En especie' => $this->valor(fn () => DB::table('donaciones_especie')->count()),
-        ];
-        $tipoDonacionDemo = array_sum($tiposDonacion) === 0;
-        if ($tipoDonacionDemo) {
-            $tiposDonacion = ['Económica' => 6, 'En especie' => 9];
+        $productosDonados = $this->filas(fn () => DB::table('tipos_bien as tb')
+            ->join('donaciones_especie as de', 'de.id_tipo_bien', '=', 'tb.id_tipo_bien')
+            ->join('donaciones as d', 'd.id_donacion', '=', 'de.id_donacion')
+            ->whereIn('d.estado', ['verificada', 'recibida'])
+            ->groupBy('tb.id_tipo_bien', 'tb.nombre')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->select('tb.nombre')
+            ->selectRaw('SUM(de.cantidad) AS total')
+            ->get());
+        $productosLabels = $productosDonados->pluck('nombre')->all();
+        $productosData = $productosDonados->pluck('total')->map(fn ($total): float => (float) $total)->all();
+        $productosDemo = $productosLabels === [];
+        if ($productosDemo) {
+            $productosLabels = ['Ropa', 'Arroz', 'Cobijas', 'Zapatos', 'Medicamentos'];
+            $productosData = [24, 18, 15, 12, 8];
         }
         $estadoBeneficiarios = $this->seriePorClave(
             fn () => DB::table('beneficiarios')->selectRaw('estado, COUNT(*) AS total')->groupBy('estado')->get(),
@@ -65,7 +64,7 @@ class DashboardService
         );
         $roles = $this->filas(fn () => DB::table('roles as r')
             ->leftJoin('usuarios as u', function ($join): void {
-                $join->on('u.id_rol', '=', 'r.id_rol')->where('u.activo', '=', true);
+                $join->on('u.id_rol', '=', 'r.id_rol')->where('u.estatus', '=', 'ACTIVO');
             })
             ->where('r.activo', true)
             ->groupBy('r.id_rol', 'r.nombre')
@@ -76,8 +75,8 @@ class DashboardService
         $rolesValues = $roles->pluck('total')->map(fn ($total): int => (int) $total)->all();
         $rolesDemo = empty($rolesValues) || array_sum($rolesValues) === 0;
         if ($rolesDemo) {
-            $rolesLabels = ['Administrador', 'Coordinador', 'Voluntario', 'Donador', 'Inventarista', 'Auditor', 'Comunicación'];
-            $rolesValues = [2, 1, 4, 6, 1, 1, 1];
+            $rolesLabels = ['SuperAdmin', 'Directiva', 'Tesorería', 'Coordinador', 'Voluntario', 'Donador'];
+            $rolesValues = [2, 2, 2, 2, 2, 2];
         }
 
         $campanas = $this->filas(fn () => DB::table('campanas as c')
@@ -85,12 +84,12 @@ class DashboardService
                 $join->on('d.id_campana', '=', 'c.id_campana')
                     ->whereIn('d.estado', ['verificada', 'recibida']);
             })
-            ->leftJoin('donaciones_economicas as de', 'de.id_donacion', '=', 'd.id_donacion')
+            ->leftJoin('donaciones_especie as de', 'de.id_donacion', '=', 'd.id_donacion')
             ->where('c.estado', 'activa')
-            ->groupBy('c.id_campana', 'c.nombre', 'c.meta_economica', 'c.fecha_inicio')
+            ->groupBy('c.id_campana', 'c.nombre', 'c.meta_cantidad', 'c.fecha_inicio')
             ->orderBy('c.fecha_inicio')
             ->limit(4)
-            ->selectRaw('c.nombre, c.meta_economica, COALESCE(SUM(de.monto), 0) AS recaudado')
+            ->selectRaw('c.nombre, c.meta_cantidad, COALESCE(SUM(de.cantidad), 0) AS recaudado')
             ->get());
         $campanasDemo = $campanas->isEmpty();
         $campanasActivas = $campanasDemo
@@ -102,7 +101,7 @@ class DashboardService
             ]
             : $campanas->values()->map(function (object $row, int $index): array {
                 $colors = ['var(--primary)', 'var(--amber)', '#3b6fd4', 'var(--danger)'];
-                $meta = max(1, (float) $row->meta_economica);
+                $meta = max(1, (float) $row->meta_cantidad);
 
                 return [
                     'nombre' => $row->nombre,
@@ -111,10 +110,21 @@ class DashboardService
                 ];
             })->all();
 
+        $articulosTotal = $this->valor(fn () => DB::table('donaciones_especie as de')
+            ->join('donaciones as d', 'd.id_donacion', '=', 'de.id_donacion')
+            ->where('d.estado', 'verificada')
+            ->sum('de.cantidad'));
+        $articulosMes = $this->valor(fn () => DB::table('donaciones_especie as de')
+            ->join('donaciones as d', 'd.id_donacion', '=', 'de.id_donacion')
+            ->where('d.estado', 'verificada')
+            ->whereMonth('d.fecha_recepcion', now()->month)
+            ->whereYear('d.fecha_recepcion', now()->year)
+            ->sum('de.cantidad'));
+
         return [
             'kpis' => [
-                'donaciones_total' => $this->moneda((float) $econTotal),
-                'donaciones_mes' => $this->moneda((float) $econMes),
+                'articulos_total' => $articulosTotal,
+                'articulos_mes' => $articulosMes,
                 'beneficiarios' => $this->valor(fn () => DB::table('beneficiarios')->where('estado', 'activo')->count()),
                 'campanas' => $this->valor(fn () => DB::table('campanas')->where('estado', 'activa')->count()),
                 'entregas' => $this->valor(fn () => DB::table('entregas')->where('estado', 'completada')->count()),
@@ -123,9 +133,9 @@ class DashboardService
                 'inventario' => $inventario,
             ],
             'charts' => [
-                'meses' => ['labels' => self::MESES, 'montos' => $mensuales, 'especie' => $especieMensual, 'demo' => $monthlyDemo],
+                'meses' => ['labels' => self::MESES, 'articulos' => $articulosPorMes, 'demo' => $monthlyDemo],
                 'estados_donaciones' => ['labels' => ['Verificada', 'Recibida', 'Pendiente', 'Rechazada'], 'data' => array_values($estadoDonaciones['values']), 'demo' => $estadoDonaciones['demo']],
-                'tipos_donacion' => ['labels' => array_keys($tiposDonacion), 'data' => array_values($tiposDonacion), 'demo' => $tipoDonacionDemo],
+                'productos_mas_donados' => ['labels' => $productosLabels, 'data' => $productosData, 'demo' => $productosDemo],
                 'beneficiarios' => ['labels' => array_values($estadoBeneficiarios['labels']), 'data' => array_values($estadoBeneficiarios['values']), 'demo' => $estadoBeneficiarios['demo']],
                 'donadores' => ['labels' => array_values($tiposDonador['labels']), 'data' => array_values($tiposDonador['values']), 'demo' => $tiposDonador['demo']],
                 'roles' => ['labels' => $rolesLabels, 'data' => $rolesValues, 'demo' => $rolesDemo],
@@ -174,8 +184,4 @@ class DashboardService
         }
     }
 
-    private function moneda(float $cantidad): string
-    {
-        return '$'.number_format($cantidad, 2, '.', ',');
-    }
 }

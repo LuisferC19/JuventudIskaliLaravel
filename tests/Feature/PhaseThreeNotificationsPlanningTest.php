@@ -92,7 +92,7 @@ class PhaseThreeNotificationsPlanningTest extends TestCase
             'nombre' => 'Ana',
             'apellido' => 'López',
             'email' => 'ana@example.test',
-            'activo' => true,
+            'estatus' => 'ACTIVO',
         ]);
         $usuario = new Usuario;
         $usuario->forceFill(['id_usuario' => 10]);
@@ -106,6 +106,7 @@ class PhaseThreeNotificationsPlanningTest extends TestCase
                 'fecha_fin' => '',
                 'zona' => 'tlaxcala',
                 'estado' => 'planeada',
+                'puntos' => 10,
                 'id_usuario_responsable' => '',
             ])
             ->assertRedirect(route('planning.index', ['mes' => 10, 'anio' => 2026]));
@@ -119,6 +120,7 @@ class PhaseThreeNotificationsPlanningTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('actividades.12.0.titulo', 'Jornada comunitaria')
+            ->assertJsonPath('actividades.12.0.puntos', 10)
             ->assertJsonPath('actividades.12.0.nombre', 'Ana');
     }
 
@@ -129,7 +131,7 @@ class PhaseThreeNotificationsPlanningTest extends TestCase
             'nombre' => 'Ana',
             'apellido' => 'López',
             'email' => 'ana@example.test',
-            'activo' => true,
+            'estatus' => 'ACTIVO',
         ]);
         DB::table('actividades')->insert([
             'id_actividad' => 5,
@@ -156,6 +158,7 @@ class PhaseThreeNotificationsPlanningTest extends TestCase
             'fecha_fin' => '2026-10-12 11:00:00',
             'zona' => 'ambas',
             'estado' => 'completada',
+            'puntos' => 10,
             'id_usuario_responsable' => '10',
         ])->assertRedirect(route('planning.index', ['mes' => 10, 'anio' => 2026]));
         $this->assertDatabaseHas('actividades', ['id_actividad' => 5, 'titulo' => 'Actividad actualizada', 'estado' => 'completada']);
@@ -165,11 +168,49 @@ class PhaseThreeNotificationsPlanningTest extends TestCase
         $this->assertDatabaseMissing('actividades', ['id_actividad' => 5]);
     }
 
+    public function test_coordinador_solo_programa_en_su_sede_y_puntos_se_validan(): void
+    {
+        DB::table('roles')->insert(['id_rol' => 1, 'slug' => 'coordinador']);
+        DB::table('usuarios')->insert([
+            'id_usuario' => 10,
+            'id_rol' => 1,
+            'nombre' => 'Ana',
+            'apellido' => 'López',
+            'email' => 'ana@example.test',
+            'estatus' => 'ACTIVO',
+            'sede' => 'san_martin',
+        ]);
+        $usuario = Usuario::findOrFail(10);
+
+        $base = [
+            'titulo' => 'Jornada comunitaria',
+            'fecha_inicio' => '2026-10-12 09:00:00',
+            'fecha_fin' => '2026-10-12 12:00:00',
+            'estado' => 'planeada',
+        ];
+
+        $this->withoutMiddleware()->actingAs($usuario)
+            ->post('/__phase3/activities', $base + ['zona' => 'san_martin', 'puntos' => 25])
+            ->assertSessionHasErrors('puntos');
+
+        $this->post('/__phase3/activities', $base + ['zona' => 'tlaxcala', 'puntos' => 10])
+            ->assertSessionHasErrors('zona');
+
+        $this->post('/__phase3/activities', $base + ['zona' => 'san_martin', 'puntos' => 10])
+            ->assertRedirect(route('planning.index', ['mes' => 10, 'anio' => 2026]));
+
+        $this->assertDatabaseHas('actividades', [
+            'titulo' => 'Jornada comunitaria',
+            'zona' => 'san_martin',
+            'puntos' => 10,
+        ]);
+    }
+
     public function test_servicio_envia_notificacion_de_campana_a_usuarios_activos(): void
     {
         DB::table('usuarios')->insert([
-            ['id_usuario' => 10, 'nombre' => 'Ana', 'apellido' => 'Uno', 'email' => 'ana@example.test', 'activo' => true],
-            ['id_usuario' => 20, 'nombre' => 'Luis', 'apellido' => 'Dos', 'email' => 'luis@example.test', 'activo' => false],
+            ['id_usuario' => 10, 'nombre' => 'Ana', 'apellido' => 'Uno', 'email' => 'ana@example.test', 'estatus' => 'ACTIVO'],
+            ['id_usuario' => 20, 'nombre' => 'Luis', 'apellido' => 'Dos', 'email' => 'luis@example.test', 'estatus' => 'INACTIVO'],
         ]);
         DB::table('tipos_referencia_notif')->insert([
             'id_tipo_ref' => 1,
@@ -203,12 +244,18 @@ class PhaseThreeNotificationsPlanningTest extends TestCase
 
     private function crearEsquemaAislado(): void
     {
+        Schema::create('roles', function ($table): void {
+            $table->increments('id_rol');
+            $table->string('slug');
+        });
         Schema::create('usuarios', function ($table): void {
             $table->unsignedInteger('id_usuario')->primary();
+            $table->unsignedInteger('id_rol')->nullable();
             $table->string('nombre');
             $table->string('apellido');
             $table->string('email');
-            $table->boolean('activo')->default(true);
+            $table->string('estatus')->default('ACTIVO');
+            $table->string('sede')->nullable();
         });
         Schema::create('tipos_referencia_notif', function ($table): void {
             $table->increments('id_tipo_ref');
@@ -234,8 +281,16 @@ class PhaseThreeNotificationsPlanningTest extends TestCase
             $table->dateTime('fecha_fin');
             $table->string('zona');
             $table->string('estado');
+            $table->unsignedTinyInteger('puntos')->default(5);
             $table->unsignedInteger('id_responsable');
             $table->timestamp('creado_en')->useCurrent();
+        });
+        Schema::create('asistencia_voluntarios', function ($table): void {
+            $table->increments('id_asistencia');
+            $table->unsignedInteger('id_voluntario');
+            $table->unsignedInteger('id_actividad');
+            $table->string('metodo');
+            $table->boolean('presente')->default(false);
         });
     }
 }

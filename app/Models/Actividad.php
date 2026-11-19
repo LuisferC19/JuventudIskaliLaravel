@@ -20,6 +20,7 @@ class Actividad extends Model
         'fecha_fin',
         'zona',
         'estado',
+        'puntos',
         'id_responsable',
         'creado_en',
     ];
@@ -29,6 +30,7 @@ class Actividad extends Model
         return [
             'fecha_inicio' => 'datetime',
             'fecha_fin' => 'datetime',
+            'puntos' => 'integer',
             'creado_en' => 'datetime',
         ];
     }

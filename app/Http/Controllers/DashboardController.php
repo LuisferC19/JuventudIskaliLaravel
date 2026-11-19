@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -10,28 +11,23 @@ class DashboardController extends Controller
     public function index(): View
     {
         $anio = now()->year;
-        $donacionesPorMes = DB::table('donaciones as d')
-            ->leftJoin('donaciones_economicas as de', 'de.id_donacion', '=', 'd.id_donacion')
+        $donacionesMensuales = DB::table('donaciones as d')
             ->leftJoin('donaciones_especie as des', 'des.id_donacion', '=', 'd.id_donacion')
             ->whereYear('d.fecha_recepcion', $anio)
-            ->selectRaw('MONTH(d.fecha_recepcion) as mes')
-            ->selectRaw('SUM(COALESCE(de.monto, 0)) as economica')
-            ->selectRaw('SUM(COALESCE(des.cantidad, 0)) as especie')
-            ->groupByRaw('MONTH(d.fecha_recepcion)')
-            ->get()
-            ->keyBy('mes');
+            ->select(['d.fecha_recepcion', 'des.cantidad'])
+            ->get();
 
-        $montosEconomicos = [];
-        $cantidadesEspecie = [];
-        foreach (range(1, 12) as $mes) {
-            $montosEconomicos[] = (float) ($donacionesPorMes->get($mes)->economica ?? 0);
-            $cantidadesEspecie[] = (float) ($donacionesPorMes->get($mes)->especie ?? 0);
+        $articulosPorMes = array_fill(0, 12, 0.0);
+        foreach ($donacionesMensuales as $donacion) {
+            if ($donacion->cantidad !== null) {
+                $mes = (int) Carbon::parse($donacion->fecha_recepcion)->format('n') - 1;
+                $articulosPorMes[$mes] += (float) $donacion->cantidad;
+            }
         }
 
-        $demoMensual = array_sum($montosEconomicos) === 0.0 && array_sum($cantidadesEspecie) === 0.0;
+        $demoMensual = array_sum($articulosPorMes) === 0.0;
         if ($demoMensual) {
-            $montosEconomicos = [0, 0, 5200, 18000, 25000, 42000, 0, 0, 0, 0, 0, 0];
-            $cantidadesEspecie = [0, 0, 10, 25, 15, 30, 0, 0, 0, 0, 0, 0];
+            $articulosPorMes = [0, 0, 10, 25, 15, 30, 0, 0, 0, 0, 0, 0];
         }
 
         $estadosDonacion = $this->conteosPorCampo('donaciones', 'estado', [
@@ -45,13 +41,22 @@ class DashboardController extends Controller
             $estadosDonacion = ['verificada' => 9, 'recibida' => 4, 'pendiente' => 1, 'rechazada' => 1];
         }
 
-        $tiposDonacion = [
-            'economica' => DB::table('donaciones_economicas')->count(),
-            'especie' => DB::table('donaciones_especie')->count(),
-        ];
-        $demoTiposDonacion = array_sum($tiposDonacion) === 0;
-        if ($demoTiposDonacion) {
-            $tiposDonacion = ['economica' => 6, 'especie' => 9];
+        $productosDonados = DB::table('tipos_bien as tb')
+            ->join('donaciones_especie as de', 'de.id_tipo_bien', '=', 'tb.id_tipo_bien')
+            ->join('donaciones as d', 'd.id_donacion', '=', 'de.id_donacion')
+            ->whereIn('d.estado', ['verificada', 'recibida'])
+            ->groupBy('tb.id_tipo_bien', 'tb.nombre')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->select('tb.nombre')
+            ->selectRaw('SUM(de.cantidad) AS total')
+            ->get();
+        $productosLabels = $productosDonados->pluck('nombre')->all();
+        $productosData = $productosDonados->pluck('total')->map(fn ($total): float => (float) $total)->all();
+        $demoProductos = $productosLabels === [];
+        if ($demoProductos) {
+            $productosLabels = ['Ropa', 'Arroz', 'Cobijas', 'Zapatos', 'Medicamentos'];
+            $productosData = [24, 18, 15, 12, 8];
         }
 
         $estadosBeneficiario = $this->conteosPorCampo('beneficiarios', 'estado', [
@@ -77,7 +82,7 @@ class DashboardController extends Controller
 
         $usuariosPorRol = DB::table('roles as r')
             ->leftJoin('usuarios as u', function ($join): void {
-                $join->on('u.id_rol', '=', 'r.id_rol')->where('u.activo', true);
+                $join->on('u.id_rol', '=', 'r.id_rol')->where('u.estatus', 'ACTIVO');
             })
             ->where('r.activo', true)
             ->select('r.nombre')
@@ -89,8 +94,8 @@ class DashboardController extends Controller
         $rolesData = $usuariosPorRol->pluck('total')->map(fn ($total): int => (int) $total)->all();
         $demoRoles = $rolesLabels === [] || array_sum($rolesData) === 0;
         if ($demoRoles) {
-            $rolesLabels = ['Administrador', 'Coordinador', 'Voluntario', 'Donador', 'Inventarista', 'Auditor', 'Comunicación'];
-            $rolesData = [2, 1, 4, 6, 1, 1, 1];
+            $rolesLabels = ['SuperAdmin', 'Directiva', 'Tesorería', 'Coordinador', 'Voluntario', 'Donador'];
+            $rolesData = [2, 2, 2, 2, 2, 2];
         }
 
         $campanasActivas = DB::table('campanas as c')
@@ -98,17 +103,17 @@ class DashboardController extends Controller
                 $join->on('d.id_campana', '=', 'c.id_campana')
                     ->whereIn('d.estado', ['verificada', 'recibida']);
             })
-            ->leftJoin('donaciones_economicas as de', 'de.id_donacion', '=', 'd.id_donacion')
+            ->leftJoin('donaciones_especie as de', 'de.id_donacion', '=', 'd.id_donacion')
             ->where('c.estado', 'activa')
-            ->select('c.nombre', 'c.meta_economica')
-            ->selectRaw('COALESCE(SUM(de.monto), 0) as recaudado')
-            ->groupBy('c.id_campana', 'c.nombre', 'c.meta_economica')
+            ->select('c.nombre', 'c.meta_cantidad')
+            ->selectRaw('COALESCE(SUM(de.cantidad), 0) as recaudado')
+            ->groupBy('c.id_campana', 'c.nombre', 'c.meta_cantidad')
             ->orderBy('c.fecha_inicio')
             ->limit(4)
             ->get()
             ->map(function ($campana, int $index): array {
                 $colores = ['var(--primary)', 'var(--amber)', '#3b6fd4', 'var(--danger)'];
-                $meta = max(1, (float) $campana->meta_economica);
+                $meta = max(1, (float) $campana->meta_cantidad);
 
                 return [
                     'nombre' => $campana->nombre,
@@ -127,6 +132,17 @@ class DashboardController extends Controller
             ];
         }
 
+        $totalDonado = (float) DB::table('donaciones_especie as de')
+            ->join('donaciones as d', 'd.id_donacion', '=', 'de.id_donacion')
+            ->where('d.estado', 'verificada')
+            ->sum('de.cantidad');
+        $donadoEsteMes = (float) DB::table('donaciones_especie as de')
+            ->join('donaciones as d', 'd.id_donacion', '=', 'de.id_donacion')
+            ->where('d.estado', 'verificada')
+            ->whereMonth('d.fecha_recepcion', now()->month)
+            ->whereYear('d.fecha_recepcion', $anio)
+            ->sum('de.cantidad');
+
         $actividadReciente = $this->actividadReciente();
         $demoActividad = $actividadReciente === [];
         if ($demoActividad) {
@@ -140,12 +156,8 @@ class DashboardController extends Controller
         }
 
         return view('dashboard', [
-            'totalDonado' => (float) DB::table('donaciones_economicas')->sum('monto'),
-            'donadoEsteMes' => (float) DB::table('donaciones as d')
-                ->join('donaciones_economicas as de', 'de.id_donacion', '=', 'd.id_donacion')
-                ->whereMonth('d.fecha_recepcion', now()->month)
-                ->whereYear('d.fecha_recepcion', $anio)
-                ->sum('de.monto'),
+            'totalDonado' => $totalDonado,
+            'donadoEsteMes' => $donadoEsteMes,
             'beneficiariosActivos' => DB::table('beneficiarios')->where('estado', 'activo')->count(),
             'campanasActivasTotal' => DB::table('campanas')->where('estado', 'activa')->count(),
             'entregasCompletadas' => DB::table('entregas')->where('estado', 'completada')->count(),
@@ -153,10 +165,10 @@ class DashboardController extends Controller
             'voluntariosActivos' => DB::table('voluntarios')->where('activo', true)->count(),
             'tiposBienInventario' => DB::table('inventario')->count(),
             'meses' => ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-            'montosEconomicos' => $montosEconomicos,
-            'cantidadesEspecie' => $cantidadesEspecie,
+            'articulosPorMes' => $articulosPorMes,
             'estadosDonacion' => array_values($estadosDonacion),
-            'tiposDonacion' => array_values($tiposDonacion),
+            'productosLabels' => $productosLabels,
+            'productosData' => $productosData,
             'estadosBeneficiario' => array_values($estadosBeneficiario),
             'tiposDonador' => array_values($tiposDonador),
             'rolesLabels' => $rolesLabels,
@@ -165,7 +177,7 @@ class DashboardController extends Controller
             'actividadReciente' => $actividadReciente,
             'demoMensual' => $demoMensual,
             'demoEstados' => $demoEstados,
-            'demoTiposDonacion' => $demoTiposDonacion,
+            'demoProductos' => $demoProductos,
             'demoBeneficiarios' => $demoBeneficiarios,
             'demoDonadores' => $demoDonadores,
             'demoRoles' => $demoRoles,

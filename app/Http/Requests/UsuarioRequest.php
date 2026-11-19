@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Rol;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -46,7 +47,15 @@ class UsuarioRequest extends FormRequest
                 $esCreacion ? 'required' : 'required_with:password',
                 'same:password',
             ],
-            'activo' => ['sometimes', 'boolean'],
+            'estatus' => ['required', Rule::in(['PENDIENTE', 'ACTIVO', 'INACTIVO', 'BLOQUEADO'])],
+            'sede' => [
+                Rule::requiredIf(fn (): bool => Rol::query()
+                    ->whereKey($this->input('id_rol'))
+                    ->where('slug', 'coordinador')
+                    ->exists()),
+                'nullable',
+                Rule::in(['san_martin', 'tlaxcala', 'ambas']),
+            ],
         ];
     }
 

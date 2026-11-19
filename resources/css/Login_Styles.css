@@ -71,6 +71,40 @@ body {
   margin-bottom: 20px;
 }
 
+.register-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  background: var(--input-bg);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.register-note svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: var(--verde);
+  margin-top: 1px;
+}
+
+.recover-icon {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0;
+  color: var(--verde);
+}
+
+.recover-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
 .form-label {
   display: block;
   font-size: 14px;
@@ -99,6 +133,31 @@ body {
 
 .form-input::placeholder {
   color: #8cae9e;
+}
+
+.password-hint {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.login-link-note {
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.login-link-note a {
+  color: var(--verde);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login-link-note a:hover {
+  color: var(--verde-d);
+  text-decoration: underline;
 }
 
 .btn-login {
@@ -155,6 +214,17 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+}
+
+.success-message {
+  background: rgba(10,175,160,0.08);
+  border: 1px solid rgba(10,175,160,0.2);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  color: var(--verde-d);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .error-message svg {

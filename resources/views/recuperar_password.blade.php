@@ -15,30 +15,21 @@
   </div>
 
   @if (session('success'))
-    <div class="alert alert-success" role="status">{{ session('success') }}</div>
+    <div class="success-message" role="status">{{ session('success') }}</div>
   @endif
-  @if (session('reset_url'))
-    <div class="register-note" role="status">
-      <span>El sistema no envía correo. Usa este enlace privado para continuar:</span>
-      <a href="{{ session('reset_url') }}">{{ session('reset_url') }}</a>
-    </div>
-  @endif
+  @error('token')
+    <div class="error-message" role="alert">{{ $message }}</div>
+  @enderror
 
-  
-      @if (session('success'))
-        <div class="success-box" role="status">{{ session('success') }}</div>
-      @else
-      <form id="recoverForm" method="POST" action="{{ route('recuperar_password.store') }}">
-        @csrf
-            <div class="form-group">
-        <label class="form-label" for="email">Correo electrónico registrado</label>
-        <input type="email" id="email" name="email" class="form-input" value="{{ old('email') }}" placeholder="tu@correo.com" required>
-        @error('email')<div class="error-message">{{ $message }}</div>@enderror
-      </div>
-      <button type="submit" class="btn-login">Generar enlace de recuperación</button>
-    </form>
-      @endif
-  
+  <form id="recoverForm" method="POST" action="{{ route('recuperar_password.store') }}">
+    @csrf
+    <div class="form-group">
+      <label class="form-label" for="email">Correo electrónico registrado</label>
+      <input type="email" id="email" name="email" class="form-input" value="{{ old('email') }}" placeholder="tu@correo.com" required>
+      @error('email')<div class="error-message">{{ $message }}</div>@enderror
+    </div>
+    <button type="submit" class="btn-login">Generar enlace de recuperación</button>
+  </form>
   <p class="login-link-note"><a href="{{ route('login') }}">← Regresar al inicio de sesión</a></p>
 
   <div class="login-footer">

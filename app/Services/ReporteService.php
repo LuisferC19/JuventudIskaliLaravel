@@ -115,7 +115,7 @@ class ReporteService
             'fecha_inicio',
             'fecha_cierre',
             'estado',
-            'meta_economica',
+            'meta_cantidad',
         ]);
         $this->filtrarFechas($query, 'fecha_inicio', $desde, $hasta);
 
@@ -130,14 +130,14 @@ class ReporteService
                 'cancelada' => 'Cancelada',
                 default => ucfirst(str_replace('_', ' ', $row->estado)),
             },
-            'meta' => (float) $row->meta_economica,
+            'meta' => (float) $row->meta_cantidad,
         ])->all();
 
         return [
             'rows' => $rows,
             'summary' => [
                 'Total campañas' => count($rows),
-                'Meta económica acumulada' => '$'.number_format(array_sum(array_column($rows, 'meta')), 2),
+                'Meta de acopio acumulada' => number_format(array_sum(array_column($rows, 'meta')), 2),
             ],
         ];
     }

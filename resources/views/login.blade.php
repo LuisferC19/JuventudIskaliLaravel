@@ -7,6 +7,10 @@
     <h1 class="login-title">Iniciar Sesión</h1>
   </div>
 
+  @if (session('success'))
+    <div class="success-message" role="status">{{ session('success') }}</div>
+  @endif
+
   <!-- ══ KOALA ISKI ══════════════════════════════════════════════════════════ -->
   <div style="text-align:center; position:relative; margin-bottom:-20px; z-index:10;">
 
@@ -45,7 +49,7 @@
 
     <img
       id="iski"
-      src="{{ \Illuminate\Support\Facades\Vite::asset('resources/img/Mascota_Iski_1.jpeg') }}"
+      src="{{ asset('img/Mascota_Iski_1.jpeg') }}"
       alt="Iski, mascota de Fundación Iskali"
       title="¡Haz clic para hablar con Iski!"
       style="

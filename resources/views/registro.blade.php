@@ -45,6 +45,28 @@
     </div>
 
     <div class="form-group">
+      <label class="form-label" for="fecha_nacimiento">Fecha de nacimiento</label>
+      <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" class="form-input" value="{{ old('fecha_nacimiento') }}" max="{{ now()->toDateString() }}" required>
+      @error('fecha_nacimiento')<div class="error-message">{{ $message }}</div>@enderror
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="telefono_contacto">Teléfono (opcional)</label>
+      <input type="tel" id="telefono_contacto" name="telefono_contacto" class="form-input" value="{{ old('telefono_contacto') }}" maxlength="20">
+      @error('telefono_contacto')<div class="error-message">{{ $message }}</div>@enderror
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="zona_asignada">¿En qué zona quieres participar?</label>
+      <select id="zona_asignada" name="zona_asignada" class="form-input" required>
+        <option value="">Selecciona una zona...</option>
+        <option value="san_martin" @selected(old('zona_asignada') === 'san_martin')>San Martín Texmelucan</option>
+        <option value="tlaxcala" @selected(old('zona_asignada') === 'tlaxcala')>Tlaxcala</option>
+      </select>
+      @error('zona_asignada')<div class="error-message">{{ $message }}</div>@enderror
+    </div>
+
+    <div class="form-group">
       <label class="form-label" for="password">Contraseña</label>
       <input type="password" id="password" name="password" class="form-input" placeholder="Mínimo 8 caracteres" required>
       @error('password')<div class="error-message">{{ $message }}</div>@enderror

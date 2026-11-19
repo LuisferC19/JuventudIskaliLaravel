@@ -28,14 +28,14 @@
         </div>
       </div>
       <table id="tabla-donaciones">
-        <thead><tr><th>ID</th><th>Donador</th><th>Tipo</th><th>Cantidad / monto</th><th>Fecha recepción</th><th>Campaña</th><th>Registrado por</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>ID</th><th>Donador</th><th>Producto</th><th>Cantidad</th><th>Fecha recepción</th><th>Campaña</th><th>Registrado por</th><th>Estado</th><th>Acciones</th></tr></thead>
         <tbody>
           @forelse ($donaciones as $donacion)
             <tr>
               <td>#{{ $donacion->id_donacion }}</td>
               <td>{{ trim($donacion->donador) }}</td>
-              <td>{{ $donacion->tipo === 'especie' ? ($donacion->detalle ?? 'En especie') : 'Económica' }}</td>
-              <td>{{ $donacion->tipo === 'especie' ? $donacion->cantidad_monto.' '.$donacion->unidad_medida : '$'.$donacion->cantidad_monto.' '.$donacion->unidad_medida }}</td>
+              <td>{{ $donacion->producto ?? '—' }}</td>
+              <td>{{ $donacion->cantidad }} {{ $donacion->unidad_medida }}</td>
               <td>{{ $donacion->fecha_recepcion }}</td>
               <td>{{ $donacion->campana }}</td>
               <td>{{ trim($donacion->registrado_por) }}</td>

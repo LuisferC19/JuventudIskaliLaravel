@@ -31,7 +31,7 @@ class PhaseThreeWorkflowTest extends TestCase
             'nombre' => 'Admin',
             'apellido' => 'Pruebas',
             'email' => 'admin@example.test',
-            'activo' => true,
+            'estatus' => 'ACTIVO',
         ]);
         $this->actingAs($this->usuario);
     }
@@ -45,12 +45,45 @@ class PhaseThreeWorkflowTest extends TestCase
             'fecha_fin' => '2026-10-12T12:00',
             'zona' => 'tlaxcala',
             'estado' => 'planeada',
+            'puntos' => 10,
         ])->assertRedirect(route('planning.index', ['mes' => 10, 'anio' => 2026]));
 
         $this->getJson(route('planning.calendario', ['mes' => 10, 'anio' => 2026]))
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('actividades.0.titulo', 'Jornada comunitaria');
+            ->assertJsonPath('actividades.0.titulo', 'Jornada comunitaria')
+            ->assertJsonPath('actividades.0.puntos', 10);
+
+        $this->get(route('planning.index', ['mes' => 10, 'anio' => 2026]))
+            ->assertOk()
+            ->assertSee('Jornada comunitaria');
+        $this->get(route('planning.create'))
+            ->assertOk()
+            ->assertSee('Registrar actividad');
+    }
+
+    public function test_planning_rejects_deleting_an_activity_with_attendance(): void
+    {
+        DB::table('actividades')->insert([
+            'id_actividad' => 9,
+            'titulo' => 'Actividad con asistencia',
+            'fecha_inicio' => '2026-10-12 09:00:00',
+            'fecha_fin' => '2026-10-12 12:00:00',
+            'zona' => 'ambas',
+            'estado' => 'completada',
+            'id_responsable' => 1,
+        ]);
+        DB::table('asistencia_voluntarios')->insert([
+            'id_voluntario' => 1,
+            'id_actividad' => 9,
+            'metodo' => 'manual',
+            'presente' => true,
+        ]);
+
+        $this->delete(route('planning.destroy', 9))
+            ->assertSessionHasErrors('actividad');
+
+        $this->assertDatabaseHas('actividades', ['id_actividad' => 9]);
     }
 
     public function test_qr_attendance_is_persisted_and_token_cannot_be_reused(): void
@@ -107,11 +140,11 @@ class PhaseThreeWorkflowTest extends TestCase
     {
         DB::table('campanas')->insert([
             'nombre' => 'Campaña de invierno',
-            'tipo_meta' => 'economica',
+            'tipo_meta' => 'especie',
             'fecha_inicio' => '2026-10-01',
             'fecha_cierre' => '2026-10-31',
             'estado' => 'activa',
-            'meta_economica' => 5000,
+            'meta_cantidad' => 5000,
         ]);
 
         $this->get(route('reportes.generar', [
@@ -123,6 +156,11 @@ class PhaseThreeWorkflowTest extends TestCase
 
     private function crearEsquema(): void
     {
+        Schema::create('roles', function ($table): void {
+            $table->increments('id_rol');
+            $table->string('nombre');
+            $table->string('slug')->nullable();
+        });
         Schema::create('usuarios', function ($table): void {
             $table->increments('id_usuario');
             $table->unsignedInteger('id_rol');
@@ -130,10 +168,22 @@ class PhaseThreeWorkflowTest extends TestCase
             $table->string('apellido');
             $table->string('email')->unique();
             $table->string('contrasena_hash');
-            $table->boolean('activo')->default(true);
+            $table->string('estatus')->default('ACTIVO');
+            $table->string('sede')->nullable();
             $table->integer('intentos_fallidos')->default(0);
             $table->timestamp('ultimo_acceso')->nullable();
             $table->timestamp('created_at')->nullable();
+        });
+        Schema::create('permisos', function ($table): void {
+            $table->increments('id_permiso');
+            $table->string('slug')->unique();
+            $table->string('modulo');
+            $table->string('descripcion')->nullable();
+        });
+        Schema::create('rol_permiso', function ($table): void {
+            $table->unsignedInteger('id_rol');
+            $table->unsignedInteger('id_permiso');
+            $table->primary(['id_rol', 'id_permiso']);
         });
         Schema::create('actividades', function ($table): void {
             $table->increments('id_actividad');
@@ -143,6 +193,7 @@ class PhaseThreeWorkflowTest extends TestCase
             $table->dateTime('fecha_fin');
             $table->string('zona');
             $table->string('estado');
+            $table->unsignedTinyInteger('puntos')->default(5);
             $table->unsignedInteger('id_responsable');
             $table->timestamp('creado_en')->nullable();
         });
@@ -153,12 +204,13 @@ class PhaseThreeWorkflowTest extends TestCase
             $table->date('fecha_inicio');
             $table->date('fecha_cierre');
             $table->string('estado');
-            $table->decimal('meta_economica', 12, 2)->default(0);
+            $table->decimal('meta_cantidad', 12, 2)->default(0);
         });
         Schema::create('voluntarios', function ($table): void {
             $table->increments('id_voluntario');
             $table->unsignedInteger('id_usuario')->unique();
             $table->string('telefono_contacto')->nullable();
+            $table->date('fecha_nacimiento')->nullable();
             $table->string('zona_asignada');
             $table->string('disponibilidad');
             $table->boolean('activo')->default(true);
@@ -174,6 +226,28 @@ class PhaseThreeWorkflowTest extends TestCase
             $table->boolean('presente')->default(false);
             $table->string('token_qr', 64)->nullable()->unique();
             $table->unique(['id_voluntario', 'id_actividad']);
+        });
+        Schema::create('bolsa_voluntario', function ($table): void {
+            $table->increments('id_bolsa');
+            $table->unsignedInteger('id_voluntario')->unique();
+            $table->unsignedInteger('puntos_canjeables')->default(0);
+            $table->unsignedInteger('puntos_campamento')->default(0);
+            $table->unsignedTinyInteger('faltas_injustificadas')->default(0);
+            $table->boolean('campamento_bloqueado')->default(false);
+            $table->timestamp('updated_at')->nullable();
+        });
+        Schema::create('movimientos_puntos', function ($table): void {
+            $table->increments('id_movimiento_puntos');
+            $table->unsignedInteger('id_voluntario');
+            $table->string('tipo');
+            $table->integer('puntos_canjeables')->default(0);
+            $table->integer('puntos_campamento')->default(0);
+            $table->unsignedInteger('id_actividad')->nullable();
+            $table->unsignedInteger('id_canje')->nullable();
+            $table->string('motivo')->nullable();
+            $table->unsignedInteger('id_usuario')->nullable();
+            $table->dateTime('fecha');
+            $table->unique(['id_voluntario', 'id_actividad', 'tipo']);
         });
         Schema::create('notificaciones', function ($table): void {
             $table->increments('id_notificacion');

@@ -25,7 +25,7 @@
         </div>
         <div style="overflow-x:auto;">
           <table id="tabla-voluntarios">
-            <thead><tr><th>ID</th><th>Nombre</th><th>Teléfono</th><th>Zona asignada</th><th>Disponibilidad</th><th>Fecha ingreso</th><th>Activo</th><th></th></tr></thead>
+            <thead><tr><th>ID</th><th>Nombre</th><th>Teléfono</th><th>Zona asignada</th><th>Disponibilidad</th><th>Fecha ingreso</th><th>Nacimiento</th><th>Activo</th><th></th></tr></thead>
             <tbody>
               @forelse ($voluntarios as $voluntario)
                 <tr>
@@ -34,7 +34,8 @@
                   <td>{{ $voluntario->telefono_contacto ?: '—' }}</td>
                   <td>{{ str_replace('_', ' ', ucfirst($voluntario->zona_asignada)) }}</td>
                   <td><span class="badge badge-blue">{{ str_replace('_', ' ', ucfirst($voluntario->disponibilidad)) }}</span></td>
-                  <td>{{ \Illuminate\Support\Carbon::parse($voluntario->fecha_ingreso)->format('Y-m-d') }}</td>
+                  <td>{{ $voluntario->fecha_ingreso ? \Illuminate\Support\Carbon::parse($voluntario->fecha_ingreso)->format('Y-m-d') : '—' }}</td>
+                  <td>{{ $voluntario->fecha_nacimiento ? \Illuminate\Support\Carbon::parse($voluntario->fecha_nacimiento)->format('d/m/Y') : '—' }}</td>
                   <td><span class="badge {{ $voluntario->activo ? 'badge-green' : 'badge-gray' }}">{{ $voluntario->activo ? 'Sí' : 'No' }}</span></td>
                   <td>
                     @can('permiso', ['voluntarios', 'editar'])
@@ -43,7 +44,7 @@
                   </td>
                 </tr>
               @empty
-                <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px;">No hay voluntarios registrados.</td></tr>
+                <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">No hay voluntarios registrados.</td></tr>
               @endforelse
             </tbody>
           </table>

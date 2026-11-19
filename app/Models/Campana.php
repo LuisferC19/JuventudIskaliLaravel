@@ -19,7 +19,7 @@ class Campana extends Model
         'nombre',
         'descripcion',
         'tipo_meta',
-        'meta_economica',
+        'meta_cantidad',
         'fecha_inicio',
         'fecha_cierre',
         'estado',
@@ -30,7 +30,7 @@ class Campana extends Model
     protected function casts(): array
     {
         return [
-            'meta_economica' => 'decimal:2',
+            'meta_cantidad' => 'decimal:2',
             'fecha_inicio' => 'date',
             'fecha_cierre' => 'date',
             'created_at' => 'datetime',

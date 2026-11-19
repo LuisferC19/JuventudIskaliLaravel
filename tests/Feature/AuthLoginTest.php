@@ -27,7 +27,8 @@ class AuthLoginTest extends TestCase
             $table->string('apellido');
             $table->string('email')->unique();
             $table->string('contrasena_hash');
-            $table->boolean('activo')->default(true);
+            $table->string('estatus')->default('ACTIVO');
+            $table->string('sede')->nullable();
             $table->unsignedInteger('intentos_fallidos')->default(0);
             $table->timestamp('fecha_bloqueo_temporal')->nullable();
             $table->timestamp('ultimo_acceso')->nullable();
@@ -84,6 +85,51 @@ class AuthLoginTest extends TestCase
         ]);
     }
 
+    public function test_pending_account_with_correct_password_is_not_logged_in(): void
+    {
+        $usuario = $this->crearUsuario(password_hash('correct-password', PASSWORD_BCRYPT));
+        $usuario->update(['estatus' => Usuario::ESTATUS_PENDIENTE]);
+
+        $this->from(route('login'))
+            ->post(route('login.authenticate'), [
+                'email' => $usuario->email,
+                'password' => 'correct-password',
+            ])
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors(['email' => 'Tu cuenta está pendiente de aprobación por la Directiva.']);
+
+        $this->assertGuest();
+        $this->assertSame(0, $usuario->fresh()->intentos_fallidos);
+    }
+
+    public function test_fifth_incorrect_password_blocks_account_and_correct_password_gets_neutral_message(): void
+    {
+        $usuario = $this->crearUsuario(password_hash('correct-password', PASSWORD_BCRYPT));
+
+        for ($intento = 0; $intento < 5; $intento++) {
+            $this->post(route('login.authenticate'), [
+                'email' => $usuario->email,
+                'password' => 'incorrect-password',
+            ]);
+        }
+
+        $usuario->refresh();
+        $this->assertSame(Usuario::ESTATUS_BLOQUEADO, $usuario->estatus);
+        $this->assertNotNull($usuario->fecha_bloqueo_temporal);
+        $this->assertSame(5, $usuario->intentos_fallidos);
+
+        $this->from(route('login'))
+            ->post(route('login.authenticate'), [
+                'email' => $usuario->email,
+                'password' => 'correct-password',
+            ])
+            ->assertRedirect(route('login'))
+            ->assertSessionHasErrors(['email' => 'No fue posible iniciar sesión. Si tu cuenta está bloqueada, contacta al administrador.']);
+
+        $this->assertGuest();
+        $this->assertSame(5, $usuario->fresh()->intentos_fallidos);
+    }
+
     private function crearUsuario(string $hash): Usuario
     {
         return Usuario::create([
@@ -92,7 +138,7 @@ class AuthLoginTest extends TestCase
             'apellido' => 'Login',
             'email' => 'login@example.test',
             'contrasena_hash' => $hash,
-            'activo' => true,
+            'estatus' => Usuario::ESTATUS_ACTIVO,
             'intentos_fallidos' => 0,
         ]);
     }

@@ -141,6 +141,11 @@ class VoluntarioWorkflowService
                 'metodo' => 'qr',
                 'fecha_hora' => now(),
             ])->save();
+            app(PuntosService::class)->otorgarPorAsistencia(
+                (int) $asistencia->id_voluntario,
+                (int) $asistencia->id_actividad,
+                auth()->id()
+            );
 
             return true;
         });
@@ -167,7 +172,12 @@ class VoluntarioWorkflowService
                 ->first();
 
             if ($asistencia) {
+                $estabaPresente = (bool) $asistencia->presente;
                 $asistencia->forceFill(['presente' => true, 'metodo' => 'manual', 'fecha_hora' => now()])->save();
+                if (! $estabaPresente) {
+                    app(PuntosService::class)->otorgarPorAsistencia($idVoluntario, $idActividad, auth()->id());
+                }
+
                 return;
             }
 
@@ -178,6 +188,7 @@ class VoluntarioWorkflowService
                 'metodo' => 'manual',
                 'fecha_hora' => now(),
             ]);
+            app(PuntosService::class)->otorgarPorAsistencia($idVoluntario, $idActividad, auth()->id());
         });
     }
 

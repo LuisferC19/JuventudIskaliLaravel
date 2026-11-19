@@ -17,7 +17,7 @@ class UsuarioController extends Controller
     {
         $this->middleware('permiso:usuarios,ver')->only('index');
         $this->middleware('permiso:usuarios,crear')->only('create', 'store');
-        $this->middleware('permiso:usuarios,editar')->only('edit', 'update', 'desbloquear');
+        $this->middleware('permiso:usuarios,editar')->only('edit', 'update');
         $this->middleware('permiso:usuarios,eliminar')->only('destroy');
     }
 
@@ -31,7 +31,8 @@ class UsuarioController extends Controller
                 'u.nombre',
                 'u.apellido',
                 'u.email',
-                'u.activo',
+                'u.estatus',
+                'u.sede',
                 'u.intentos_fallidos',
                 'u.fecha_bloqueo_temporal',
                 'u.ultimo_acceso',
@@ -45,8 +46,10 @@ class UsuarioController extends Controller
             'usuarios' => $usuarios,
             'roles' => Rol::orderBy('nombre')->get(),
             'totalUsuarios' => $usuarios->count(),
-            'usuariosActivos' => $usuarios->where('activo', 1)->count(),
-            'usuariosInactivos' => $usuarios->where('activo', 0)->count(),
+            'usuariosActivos' => $usuarios->where('estatus', Usuario::ESTATUS_ACTIVO)->count(),
+            'usuariosPendientes' => $usuarios->where('estatus', Usuario::ESTATUS_PENDIENTE)->count(),
+            'usuariosBloqueados' => $usuarios->where('estatus', Usuario::ESTATUS_BLOQUEADO)->count(),
+            'usuariosInactivos' => $usuarios->where('estatus', Usuario::ESTATUS_INACTIVO)->count(),
         ]);
     }
 
@@ -59,14 +62,15 @@ class UsuarioController extends Controller
     {
         $datos = $request->validated();
 
-        DB::transaction(function () use ($datos, $request): void {
+        DB::transaction(function () use ($datos): void {
             $usuario = Usuario::create([
                 'id_rol' => $datos['id_rol'],
                 'nombre' => $datos['nombre'],
                 'apellido' => $datos['apellido'],
                 'email' => $datos['email'],
                 'contrasena_hash' => Hash::make($datos['password']),
-                'activo' => $request->boolean('activo'),
+                'estatus' => $datos['estatus'],
+                'sede' => $datos['sede'] ?? null,
                 'intentos_fallidos' => 0,
             ]);
 
@@ -93,7 +97,8 @@ class UsuarioController extends Controller
             'nombre' => $datos['nombre'],
             'apellido' => $datos['apellido'],
             'email' => $datos['email'],
-            'activo' => $request->boolean('activo'),
+            'estatus' => $datos['estatus'],
+            'sede' => $datos['sede'] ?? null,
         ];
 
         if (! empty($datos['password'])) {
@@ -121,7 +126,7 @@ class UsuarioController extends Controller
                 $idUsuario = $usuario->getKey();
 
                 if ($this->tieneDatosCriticos($idUsuario)) {
-                    $usuario->update(['activo' => false]);
+                    $usuario->update(['estatus' => Usuario::ESTATUS_INACTIVO]);
                     DB::table('voluntarios')->where('id_usuario', $idUsuario)->update(['activo' => false]);
 
                     return true;
@@ -164,12 +169,36 @@ class UsuarioController extends Controller
 
     public function desbloquear(string $usuario)
     {
-        Usuario::whereKey($usuario)->update([
+        Usuario::whereKey($usuario)->where('estatus', Usuario::ESTATUS_BLOQUEADO)->update([
+            'estatus' => Usuario::ESTATUS_ACTIVO,
             'intentos_fallidos' => 0,
             'fecha_bloqueo_temporal' => null,
         ]);
 
         return redirect()->route('usuarios.index')->with('success', 'Usuario desbloqueado correctamente.');
+    }
+
+    public function aprobar(string $usuario)
+    {
+        DB::transaction(function () use ($usuario): void {
+            $registro = Usuario::findOrFail($usuario);
+            if ($registro->estatus !== Usuario::ESTATUS_PENDIENTE) {
+                return;
+            }
+            $registro->update(['estatus' => Usuario::ESTATUS_ACTIVO]);
+
+            $perfil = Voluntario::query()->where('id_usuario', $registro->id_usuario)->first();
+            if ($perfil) {
+                $perfil->update([
+                    'activo' => true,
+                    'fecha_ingreso' => $perfil->fecha_ingreso ?? now()->toDateString(),
+                ]);
+            } elseif ($registro->esRol('voluntario')) {
+                $this->provisionarPerfilVoluntario($registro, (int) $registro->id_rol);
+            }
+        });
+
+        return redirect()->route('usuarios.index')->with('success', 'Usuario aprobado correctamente.');
     }
 
     private function tieneDatosCriticos(int|string $idUsuario): bool
@@ -201,7 +230,7 @@ class UsuarioController extends Controller
     {
         $esVoluntario = Rol::query()
             ->whereKey($idRol)
-            ->where('nombre', 'Voluntario')
+            ->where('slug', 'voluntario')
             ->exists();
 
         if (! $esVoluntario) {

@@ -23,16 +23,16 @@
                 <label for="tipo_meta">Tipo de meta *</label>
                 <select id="tipo_meta" name="tipo_meta" required>
                   <option value="">Selecciona</option>
-                  @foreach (['economica' => 'Económica', 'especie' => 'En especie', 'mixta' => 'Mixta', 'servicio' => 'Servicio'] as $valor => $etiqueta)
+                  @foreach (['especie' => 'En especie', 'servicio' => 'Servicio'] as $valor => $etiqueta)
                     <option value="{{ $valor }}" @selected(old('tipo_meta', $campana->tipo_meta ?? '') === $valor)>{{ $etiqueta }}</option>
                   @endforeach
                 </select>
                 @error('tipo_meta')<div class="field-error">{{ $message }}</div>@enderror
               </div>
               <div class="form-group">
-                <label for="meta_economica">Meta económica (MXN)</label>
-                <input type="number" id="meta_economica" name="meta_economica" min="0" step="0.01" value="{{ old('meta_economica', $campana->meta_economica ?? '0.00') }}">
-                @error('meta_economica')<div class="field-error">{{ $message }}</div>@enderror
+                <label for="meta_cantidad">Meta de acopio (cantidad)</label>
+                <input type="number" id="meta_cantidad" name="meta_cantidad" min="0" step="0.01" value="{{ old('meta_cantidad', $campana->meta_cantidad ?? '0.00') }}">
+                @error('meta_cantidad')<div class="field-error">{{ $message }}</div>@enderror
               </div>
               <div class="form-group">
                 <label for="fecha_inicio">Fecha de inicio *</label>

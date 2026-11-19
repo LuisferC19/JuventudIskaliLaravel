@@ -7,7 +7,7 @@
   <div class="content">
     <div class="card" style="max-width:760px;margin:0 auto;">
       <div class="card-header"><h3>{{ $actividad->exists ? 'Editar actividad' : 'Registrar actividad' }}</h3></div>
-      <form method="POST" action="{{ $actividad->exists ? route('actividades.update', $actividad->id_actividad) : route('actividades.store') }}" style="padding:20px;">
+      <form method="POST" action="{{ $actividad->exists ? route('planning.update', $actividad->id_actividad) : route('planning.store') }}" style="padding:20px;">
         @csrf
         @if ($actividad->exists)
           @method('PUT')
@@ -57,6 +57,11 @@
             </select>
             @error('estado')<div class="field-error">{{ $message }}</div>@enderror
           </div>
+          <div>
+            <label for="puntos">Puntos por asistencia (5 a 20) *</label>
+            <input id="puntos" name="puntos" type="number" min="5" max="20" step="1" required value="{{ old('puntos', $actividad->puntos ?? 5) }}">
+            @error('puntos')<div class="field-error">{{ $message }}</div>@enderror
+          </div>
           <div style="grid-column:1/-1;">
             <label for="id_usuario_responsable">Responsable</label>
             <select id="id_usuario_responsable" name="id_usuario_responsable">
@@ -81,7 +86,7 @@
         </div>
       </form>
       @if ($actividad->exists)
-        <form id="eliminar-actividad" method="POST" action="{{ route('actividades.destroy', $actividad->id_actividad) }}"
+        <form id="eliminar-actividad" method="POST" action="{{ route('planning.destroy', $actividad->id_actividad) }}"
               onsubmit="return confirm('¿Eliminar esta actividad?')">
           @csrf
           @method('DELETE')

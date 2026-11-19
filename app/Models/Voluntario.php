@@ -18,6 +18,7 @@ class Voluntario extends Model
     protected $fillable = [
         'id_usuario',
         'telefono_contacto',
+        'fecha_nacimiento',
         'zona_asignada',
         'disponibilidad',
         'activo',
@@ -30,6 +31,7 @@ class Voluntario extends Model
     {
         return [
             'activo' => 'boolean',
+            'fecha_nacimiento' => 'date',
             'fecha_ingreso' => 'date',
             'created_at' => 'datetime',
         ];

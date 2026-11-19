@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class ActividadRequest extends FormRequest
 {
@@ -21,12 +22,27 @@ class ActividadRequest extends FormRequest
             'fecha_fin' => ['nullable', 'date', 'after_or_equal:fecha_inicio'],
             'zona' => ['required', 'in:san_martin,tlaxcala,ambas'],
             'estado' => ['required', 'in:planeada,en_curso,completada,cancelada'],
+            'puntos' => ['required', 'integer', 'between:5,20'],
             'id_usuario_responsable' => [
                 'nullable',
                 'integer',
-                Rule::exists('usuarios', 'id_usuario')->where('activo', true),
+                Rule::exists('usuarios', 'id_usuario')->where('estatus', 'ACTIVO'),
             ],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $usuario = $this->user();
+            if (
+                $usuario?->esRol('coordinador')
+                && in_array($usuario->sede, ['san_martin', 'tlaxcala'], true)
+                && $this->input('zona') !== $usuario->sede
+            ) {
+                $validator->errors()->add('zona', 'Solo puedes programar actividades en tu sede asignada.');
+            }
+        });
     }
 
     public function messages(): array
@@ -41,6 +57,9 @@ class ActividadRequest extends FormRequest
             'zona.in' => 'La zona seleccionada no es válida.',
             'estado.required' => 'Selecciona el estado de la actividad.',
             'estado.in' => 'El estado seleccionado no es válido.',
+            'puntos.required' => 'Los puntos son obligatorios.',
+            'puntos.integer' => 'Los puntos deben ser un número entero.',
+            'puntos.between' => 'Los puntos deben estar entre 5 y 20.',
             'id_usuario_responsable.exists' => 'El usuario responsable seleccionado no existe.',
         ];
     }

@@ -11,9 +11,6 @@ class CampanaRequest extends FormRequest
     {
         $this->merge([
             'nombre' => trim((string) $this->input('nombre')),
-            'meta_economica' => trim((string) $this->input('meta_economica', '')) === ''
-                ? '0'
-                : $this->input('meta_economica'),
             'imagen_url' => trim((string) $this->input('imagen_url')) ?: null,
         ]);
     }
@@ -28,8 +25,8 @@ class CampanaRequest extends FormRequest
         return [
             'nombre' => ['required', 'string', 'min:2', 'max:150'],
             'descripcion' => ['nullable', 'string'],
-            'tipo_meta' => ['required', Rule::in(['economica', 'especie', 'mixta', 'servicio'])],
-            'meta_economica' => ['required', 'numeric', 'min:0', 'max:9999999999.99'],
+            'tipo_meta' => ['required', Rule::in(['especie', 'servicio'])],
+            'meta_cantidad' => ['required', 'numeric', 'min:0', 'max:9999999999.99'],
             'fecha_inicio' => ['required', 'date_format:Y-m-d'],
             'fecha_cierre' => ['required', 'date_format:Y-m-d', 'after_or_equal:fecha_inicio'],
             'estado' => $this->isMethod('post')
@@ -47,10 +44,10 @@ class CampanaRequest extends FormRequest
             'nombre.max' => 'El nombre no puede superar los 150 caracteres.',
             'tipo_meta.required' => 'Selecciona el tipo de meta.',
             'tipo_meta.in' => 'El tipo de meta seleccionado no es válido.',
-            'meta_economica.required' => 'La meta económica es obligatoria; usa 0 si no aplica.',
-            'meta_economica.numeric' => 'La meta económica debe ser un número.',
-            'meta_economica.min' => 'La meta económica no puede ser negativa.',
-            'meta_economica.max' => 'La meta económica supera el máximo permitido.',
+            'meta_cantidad.required' => 'La meta de acopio es obligatoria.',
+            'meta_cantidad.numeric' => 'La meta de acopio debe ser un número.',
+            'meta_cantidad.min' => 'La meta de acopio no puede ser negativa.',
+            'meta_cantidad.max' => 'La meta de acopio supera el máximo permitido.',
             'fecha_inicio.required' => 'La fecha de inicio es obligatoria.',
             'fecha_inicio.date_format' => 'La fecha de inicio debe tener un formato válido.',
             'fecha_cierre.required' => 'La fecha de cierre es obligatoria.',

@@ -27,14 +27,15 @@ class PhaseOneCrudTest extends TestCase
         $this->crearEsquemaAislado();
         $this->withoutMiddleware(VerificarPermiso::class);
 
-        DB::table('roles')->insert(['id_rol' => 1, 'nombre' => 'Administrador', 'activo' => true]);
+        DB::table('roles')->insert(['id_rol' => 1, 'nombre' => 'Superadministrador', 'slug' => 'superadmin', 'activo' => true]);
+        DB::table('roles')->insert(['id_rol' => 2, 'nombre' => 'Coordinador Operativo', 'slug' => 'coordinador', 'activo' => true]);
         $this->administrador = Usuario::create([
             'id_rol' => 1,
             'nombre' => 'Admin',
             'apellido' => 'Pruebas',
             'email' => 'admin@example.test',
             'contrasena_hash' => Hash::make('secret1'),
-            'activo' => true,
+            'estatus' => Usuario::ESTATUS_ACTIVO,
             'intentos_fallidos' => 0,
         ]);
         $this->actingAs($this->administrador);
@@ -49,7 +50,8 @@ class PhaseOneCrudTest extends TestCase
             'password' => 'secret2',
             'confirmar_password' => 'secret2',
             'id_rol' => 1,
-            'activo' => 1,
+            'estatus' => Usuario::ESTATUS_ACTIVO,
+            'sede' => null,
         ])->assertRedirect(route('usuarios.index'));
 
         $usuario = Usuario::where('email', 'maria@example.test')->firstOrFail();
@@ -67,7 +69,6 @@ class PhaseOneCrudTest extends TestCase
         $this->assertTrue(Auth::attempt([
             'email' => $this->administrador->email,
             'password' => 'secret1',
-            'activo' => 1,
         ]));
 
         $hashActualizado = $this->administrador->fresh()->contrasena_hash;
@@ -85,7 +86,8 @@ class PhaseOneCrudTest extends TestCase
             'apellido' => 'Actualizado',
             'email' => $this->administrador->email,
             'id_rol' => 1,
-            'activo' => 1,
+            'estatus' => Usuario::ESTATUS_ACTIVO,
+            'sede' => null,
         ])->assertRedirect(route('usuarios.index'));
 
         $this->assertSame($hashActual, $this->administrador->fresh()->contrasena_hash);
@@ -242,7 +244,7 @@ class PhaseOneCrudTest extends TestCase
             'apellido' => 'Relacionado',
             'email' => 'relacionado@example.test',
             'contrasena_hash' => Hash::make('secret3'),
-            'activo' => true,
+            'estatus' => Usuario::ESTATUS_ACTIVO,
             'intentos_fallidos' => 0,
         ]);
         DB::table('campanas')->insert(['id_usuario_creador' => $usuario->id_usuario]);
@@ -252,7 +254,7 @@ class PhaseOneCrudTest extends TestCase
 
         $this->assertDatabaseHas('usuarios', [
             'id_usuario' => $usuario->id_usuario,
-            'activo' => false,
+            'estatus' => Usuario::ESTATUS_INACTIVO,
         ]);
     }
 
@@ -264,7 +266,7 @@ class PhaseOneCrudTest extends TestCase
             'apellido' => 'Temporal',
             'email' => 'temporal@example.test',
             'contrasena_hash' => Hash::make('secret3'),
-            'activo' => true,
+            'estatus' => Usuario::ESTATUS_ACTIVO,
             'intentos_fallidos' => 0,
         ]);
 
@@ -277,6 +279,7 @@ class PhaseOneCrudTest extends TestCase
     public function test_desbloquear_reinicia_intentos_y_fecha_de_bloqueo(): void
     {
         $this->administrador->update([
+            'estatus' => Usuario::ESTATUS_BLOQUEADO,
             'intentos_fallidos' => 5,
             'fecha_bloqueo_temporal' => now(),
         ]);
@@ -286,6 +289,68 @@ class PhaseOneCrudTest extends TestCase
 
         $this->assertSame(0, $this->administrador->fresh()->intentos_fallidos);
         $this->assertNull($this->administrador->fresh()->fecha_bloqueo_temporal);
+        $this->assertSame(Usuario::ESTATUS_ACTIVO, $this->administrador->fresh()->estatus);
+    }
+
+    public function test_aprobar_activa_solo_una_cuenta_pendiente(): void
+    {
+        $usuario = Usuario::create([
+            'id_rol' => 1,
+            'nombre' => 'Usuario',
+            'apellido' => 'Pendiente',
+            'email' => 'pendiente@example.test',
+            'contrasena_hash' => Hash::make('secret3'),
+            'estatus' => Usuario::ESTATUS_PENDIENTE,
+            'intentos_fallidos' => 0,
+        ]);
+
+        $this->post(route('usuarios.aprobar', $usuario->id_usuario))
+            ->assertRedirect(route('usuarios.index'));
+
+        $this->assertSame(Usuario::ESTATUS_ACTIVO, $usuario->fresh()->estatus);
+
+        $this->post(route('usuarios.aprobar', $this->administrador->id_usuario))
+            ->assertRedirect(route('usuarios.index'));
+
+        $this->assertSame(Usuario::ESTATUS_ACTIVO, $this->administrador->fresh()->estatus);
+    }
+
+    public function test_listado_usa_estatus_y_calcula_todos_los_conteos(): void
+    {
+        Usuario::create([
+            'id_rol' => 1,
+            'nombre' => 'Usuario',
+            'apellido' => 'Pendiente',
+            'email' => 'pendiente@example.test',
+            'contrasena_hash' => Hash::make('secret3'),
+            'estatus' => Usuario::ESTATUS_PENDIENTE,
+            'intentos_fallidos' => 0,
+        ]);
+
+        $vista = app(\App\Http\Controllers\UsuarioController::class)->index();
+        $datos = $vista->getData();
+
+        $this->assertSame(2, $datos['totalUsuarios']);
+        $this->assertSame(1, $datos['usuariosActivos']);
+        $this->assertSame(1, $datos['usuariosPendientes']);
+        $this->assertSame(0, $datos['usuariosBloqueados']);
+        $this->assertSame(0, $datos['usuariosInactivos']);
+    }
+
+    public function test_sede_es_obligatoria_para_el_rol_coordinador(): void
+    {
+        $this->from(route('usuarios.create'))
+            ->post(route('usuarios.store'), [
+                'nombre' => 'Coordinador',
+                'apellido' => 'Prueba',
+                'email' => 'coordinador@example.test',
+                'password' => 'secret3',
+                'confirmar_password' => 'secret3',
+                'id_rol' => 2,
+                'estatus' => Usuario::ESTATUS_ACTIVO,
+            ])
+            ->assertRedirect(route('usuarios.create'))
+            ->assertSessionHasErrors('sede');
     }
 
     private function crearEsquemaAislado(): void
@@ -293,6 +358,7 @@ class PhaseOneCrudTest extends TestCase
         Schema::create('roles', function ($table): void {
             $table->increments('id_rol');
             $table->string('nombre');
+            $table->string('slug')->unique();
             $table->string('descripcion')->nullable();
             $table->boolean('activo')->default(true);
         });
@@ -303,7 +369,8 @@ class PhaseOneCrudTest extends TestCase
             $table->string('apellido');
             $table->string('email')->unique();
             $table->string('contrasena_hash');
-            $table->boolean('activo')->default(true);
+            $table->string('estatus')->default('ACTIVO');
+            $table->string('sede')->nullable();
             $table->unsignedInteger('intentos_fallidos')->default(0);
             $table->timestamp('fecha_bloqueo_temporal')->nullable();
             $table->timestamp('ultimo_acceso')->nullable();

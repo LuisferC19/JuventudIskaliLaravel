@@ -46,6 +46,11 @@
               <input type="date" id="fecha_ingreso" name="fecha_ingreso" required value="{{ old('fecha_ingreso', $voluntario->fecha_ingreso ?? now()->toDateString()) }}">
               @error('fecha_ingreso')<div class="field-error">{{ $message }}</div>@enderror
             </div>
+            <div class="form-group">
+              <label for="fecha_nacimiento">Fecha de nacimiento *</label>
+              <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" required max="{{ now()->toDateString() }}" value="{{ old('fecha_nacimiento', $voluntario->fecha_nacimiento ?? '') }}">
+              @error('fecha_nacimiento')<div class="field-error">{{ $message }}</div>@enderror
+            </div>
             <div class="form-group full">
               <label for="notas">Notas</label>
               <textarea id="notas" name="notas" rows="4" maxlength="65535">{{ old('notas', $voluntario->notas ?? '') }}</textarea>

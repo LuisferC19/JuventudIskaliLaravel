@@ -110,11 +110,6 @@ class DonationDeliveryListingTest extends TestCase
             $table->increments('id_tipo_bien');
             $table->string('nombre')->nullable();
         });
-        Schema::create('donaciones_economicas', function ($table): void {
-            $table->unsignedInteger('id_donacion')->primary();
-            $table->decimal('monto', 12, 2)->nullable();
-            $table->string('moneda')->nullable();
-        });
         Schema::create('entregas', function ($table): void {
             $table->increments('id_entrega');
             $table->unsignedInteger('id_donacion')->nullable();

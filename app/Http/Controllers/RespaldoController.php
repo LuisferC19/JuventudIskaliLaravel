@@ -17,7 +17,8 @@ class RespaldoController extends Controller
 {
     private const TABLAS = [
         'roles',
-        'permisos_rol',
+        'permisos',
+        'rol_permiso',
         'comunidades',
         'tipos_apoyo',
         'niveles_gamificacion',
@@ -37,7 +38,6 @@ class RespaldoController extends Controller
         'reconocimientos',
         'donaciones',
         'donaciones_especie',
-        'donaciones_economicas',
         'inventario',
         'movimientos_inventario',
         'beneficiarios',
@@ -49,6 +49,10 @@ class RespaldoController extends Controller
         'asignaciones_voluntario',
         'actividades',
         'asistencia_voluntarios',
+        'bolsa_voluntario',
+        'cat_premios',
+        'canjes_premios',
+        'movimientos_puntos',
         'notificaciones',
         'respaldos',
     ];
@@ -246,8 +250,7 @@ class RespaldoController extends Controller
 
     private function asegurarAcceso(Request $request): void
     {
-        $rol = DB::table('roles')->where('id_rol', $request->user()->id_rol)->value('nombre');
-        abort_unless(in_array($rol, ['Administrador', 'Auditor'], true), 403);
+        abort_unless($request->user()->tienePermiso('backups.manage'), 403);
     }
 
     private function asegurarMySql(): void

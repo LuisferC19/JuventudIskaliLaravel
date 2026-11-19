@@ -21,7 +21,7 @@
 
         <div class="card-header">
           <h3>
-            <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/avatar_usuario.png') }}" alt="Usuario" style="width:20px;height:20px;">
+            <img src="{{ asset('iconos/avatar_usuario.png') }}" alt="Usuario" style="width:20px;height:20px;">
             Nuevo Usuario          </h3>
         </div>
 
@@ -135,20 +135,33 @@
                           data-msg_required="Debes seleccionar un rol.">
                     <option value="">— Selecciona un rol —</option>
                     @foreach ($roles as $rol)
-                      <option value="{{ $rol->id_rol }}" @selected(old('id_rol') == $rol->id_rol)>{{ $rol->nombre }}</option>
+                      <option value="{{ $rol->id_rol }}" data-slug="{{ $rol->slug }}" @selected(old('id_rol') == $rol->id_rol)>{{ $rol->nombre }}</option>
                     @endforeach
                                       </select>
                   <div class="field-error">@error('id_rol'){{ $message }}@enderror</div>
                 </div>
               
-              <!-- ── Estado activo ───────────────────────────────────── -->
-              <div class="form-group full form-checkbox">
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                  <input type="hidden" name="activo" value="0">
-                  <input type="checkbox" name="activo" value="1"
-                         @checked(old('activo', true))>
-                  <span>Usuario activo</span>
-                </label>
+              <!-- ── Estatus ──────────────────────────────────────────── -->
+              <div class="form-group">
+                <label for="estatus">Estatus del usuario <span style="color:#f44336;">*</span></label>
+                <select id="estatus" name="estatus" required>
+                  @foreach (['ACTIVO', 'PENDIENTE', 'INACTIVO', 'BLOQUEADO'] as $estatus)
+                    <option value="{{ $estatus }}" @selected(old('estatus', 'ACTIVO') === $estatus)>{{ ucfirst(strtolower($estatus)) }}</option>
+                  @endforeach
+                </select>
+                <div class="field-error">@error('estatus'){{ $message }}@enderror</div>
+              </div>
+
+              <!-- ── Sede ─────────────────────────────────────────────── -->
+              <div class="form-group full" id="campo-sede" style="display:none;">
+                <label for="sede">Sede <span style="color:#f44336;">*</span></label>
+                <select id="sede" name="sede">
+                  <option value="">— Selecciona una sede —</option>
+                  @foreach (['san_martin' => 'San Martín', 'tlaxcala' => 'Tlaxcala', 'ambas' => 'Ambas'] as $valorSede => $nombreSede)
+                    <option value="{{ $valorSede }}" @selected(old('sede') === $valorSede)>{{ $nombreSede }}</option>
+                  @endforeach
+                </select>
+                <div class="field-error">@error('sede'){{ $message }}@enderror</div>
               </div>
 
             </div><!-- /form-grid -->
@@ -161,7 +174,7 @@
                 ← Volver a la Lista
               </a>
               <button type="submit" class="btn btn-primary">
-                <img src="{{ \Illuminate\Support\Facades\Vite::asset('resources/iconos/aprobado_carpeta.png') }}" alt="Guardar" style="width:16px;height:16px;">
+                <img src="{{ asset('iconos/aprobado_carpeta.png') }}" alt="Guardar" style="width:16px;height:16px;">
                 Crear Usuario              </button>
             </div>
 
@@ -175,6 +188,20 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  var rol = document.getElementById('id_rol');
+  var campoSede = document.getElementById('campo-sede');
+  var sede = document.getElementById('sede');
+  function actualizarSede() {
+    var coordinador = rol && rol.selectedOptions[0] && rol.selectedOptions[0].dataset.slug === 'coordinador';
+    campoSede.style.display = coordinador ? '' : 'none';
+    sede.required = coordinador;
+    if (!coordinador) sede.value = '';
+  }
+  if (rol && campoSede && sede) {
+    rol.addEventListener('change', actualizarSede);
+    actualizarSede();
+  }
+
   var passwordInput  = document.getElementById('password');
   var confirmarCampo = document.getElementById('campo-confirmar');
   var confirmarInput = document.getElementById('confirmar_password');

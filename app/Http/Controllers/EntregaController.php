@@ -131,14 +131,13 @@ class EntregaController extends Controller
             ->leftJoin('usuarios as u', 'u.id_usuario', '=', 'e.id_usuario_responsable')
             ->leftJoin('donaciones_especie as de', 'de.id_donacion', '=', 'd.id_donacion')
             ->leftJoin('tipos_bien as tb', 'tb.id_tipo_bien', '=', 'de.id_tipo_bien')
-            ->leftJoin('donaciones_economicas as deco', 'deco.id_donacion', '=', 'd.id_donacion')
             ->select('e.*', 'd.estado as estado_donacion', 'd.fecha_recepcion', 'tb.nombre as tipo_bien')
             ->selectRaw("COALESCE(c.nombre, 'Campaña no disponible') AS campana")
             ->selectRaw("CASE WHEN dn.id_donador IS NULL THEN 'Donador no disponible' ELSE COALESCE(NULLIF(dm.razon_social, ''), NULLIF(TRIM(CONCAT(COALESCE(df.nombre, ''), ' ', COALESCE(df.apellido, ''))), ''), NULLIF(dg.nombre_grupo, ''), 'Anónimo') END AS donador")
             ->selectRaw("CASE WHEN b.id_beneficiario IS NULL THEN 'Beneficiario no disponible' ELSE COALESCE(NULLIF(bm.razon_social, ''), NULLIF(TRIM(CONCAT(COALESCE(bf.nombre, ''), ' ', COALESCE(bf.apellido, ''))), ''), 'Beneficiario sin nombre') END AS beneficiario")
             ->selectRaw("COALESCE(NULLIF(TRIM(CONCAT(COALESCE(u.nombre, ''), ' ', COALESCE(u.apellido, ''))), ''), 'Usuario no disponible') AS responsable")
-            ->selectRaw("COALESCE(de.unidad_medida, deco.moneda) AS unidad_medida")
-            ->selectRaw("CASE WHEN de.id_donacion IS NOT NULL THEN COALESCE(tb.nombre, 'Tipo de bien no disponible') WHEN deco.id_donacion IS NOT NULL THEN 'Donación económica' ELSE 'Tipo de donación no disponible' END AS tipo_donacion");
+            ->addSelect('de.cantidad', 'de.unidad_medida')
+            ->selectRaw("COALESCE(tb.nombre, 'Tipo de bien no disponible') AS tipo_donacion");
     }
 
     private function formOptions(?int $idBeneficiario = null): array
@@ -165,14 +164,12 @@ class EntregaController extends Controller
             ->join('campanas as c', 'c.id_campana', '=', 'd.id_campana')
             ->leftJoin('donaciones_especie as de', 'de.id_donacion', '=', 'd.id_donacion')
             ->leftJoin('tipos_bien as tb', 'tb.id_tipo_bien', '=', 'de.id_tipo_bien')
-            ->leftJoin('donaciones_economicas as deco', 'deco.id_donacion', '=', 'd.id_donacion')
             ->where('d.estado', 'verificada')
             ->select('d.id_donacion')
-            ->selectRaw("COALESCE(tb.nombre, 'Donación económica') AS tipo_donacion")
+            ->selectRaw("tb.nombre AS tipo_donacion")
             ->selectRaw("COALESCE(dm.razon_social, CONCAT(COALESCE(df.nombre, ''), ' ', COALESCE(df.apellido, '')), dg.nombre_grupo, 'Anónimo') AS donador")
             ->selectRaw('c.nombre AS campana')
-            ->selectRaw('COALESCE(de.cantidad, deco.monto) AS cantidad')
-            ->selectRaw('COALESCE(de.unidad_medida, deco.moneda) AS unidad_medida')
+            ->addSelect('de.cantidad', 'de.unidad_medida')
             ->orderByDesc('d.id_donacion')
             ->get();
 

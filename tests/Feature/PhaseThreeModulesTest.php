@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Services\DashboardService;
 use App\Services\DatabaseBackupService;
 use App\Services\ReporteService;
@@ -68,7 +69,7 @@ class PhaseThreeModulesTest extends TestCase
         DB::table('comunidades')->insert(['id_comunidad' => 1, 'municipio' => 'Puebla']);
         DB::table('campanas')->insert([
             'id_campana' => 1, 'nombre' => 'Abrigo', 'descripcion' => 'Invierno', 'fecha_inicio' => '2026-02-01',
-            'fecha_cierre' => '2026-03-01', 'estado' => 'activa', 'meta_economica' => 5000,
+            'fecha_cierre' => '2026-03-01', 'estado' => 'activa', 'meta_cantidad' => 5000,
         ]);
 
         $reports = app(ReporteService::class);
@@ -85,8 +86,38 @@ class PhaseThreeModulesTest extends TestCase
 
     public function test_dashboard_uses_database_values_and_only_marks_empty_charts_demo(): void
     {
-        DB::table('donaciones')->insert(['id_donacion' => 1, 'estado' => 'recibida', 'fecha_recepcion' => now()->toDateString(), 'id_campana' => null]);
-        DB::table('donaciones_economicas')->insert(['id_donacion' => 1, 'monto' => 125.50]);
+        DB::table('campanas')->insert([
+            'id_campana' => 1,
+            'nombre' => 'Acopio de alimentos',
+            'fecha_inicio' => now()->toDateString(),
+            'fecha_cierre' => now()->addMonth()->toDateString(),
+            'estado' => 'activa',
+            'meta_cantidad' => 200,
+        ]);
+        DB::table('donaciones')->insert([
+            'id_donacion' => 1,
+            'estado' => 'recibida',
+            'fecha_recepcion' => now(),
+            'created_at' => now(),
+            'id_campana' => 1,
+        ]);
+        DB::table('donaciones')->insert([
+            'id_donacion' => 2,
+            'estado' => 'verificada',
+            'fecha_recepcion' => now(),
+            'created_at' => now(),
+            'id_campana' => 1,
+        ]);
+        DB::table('tipos_bien')->insert([
+            'id_tipo_bien' => 1,
+            'nombre' => 'Cobijas',
+            'unidad_medida' => 'pieza',
+            'activo' => true,
+        ]);
+        DB::table('donaciones_especie')->insert([
+            ['id_donacion' => 1, 'id_tipo_bien' => 1, 'cantidad' => 125.50],
+            ['id_donacion' => 2, 'id_tipo_bien' => 1, 'cantidad' => 20],
+        ]);
         DB::table('donadores')->insert([
             'id_donador' => 1, 'tipo_donante' => 'persona', 'email' => 'a@example.test', 'activo' => 1, 'created_at' => now(),
         ]);
@@ -96,16 +127,26 @@ class PhaseThreeModulesTest extends TestCase
 
         $data = app(DashboardService::class)->datos();
 
-        $this->assertSame('$125.50', $data['kpis']['donaciones_total']);
+        $this->assertSame(20.0, (float) $data['kpis']['articulos_total']);
         $this->assertSame(1, $data['kpis']['donadores']);
         $this->assertSame(1, $data['kpis']['beneficiarios']);
+        $this->assertSame(145.5, $data['charts']['meses']['articulos'][(int) now()->format('n') - 1]);
+        $this->assertSame(['Cobijas'], $data['charts']['productos_mas_donados']['labels']);
+        $this->assertSame([145.5], $data['charts']['productos_mas_donados']['data']);
+        $this->assertSame(73, $data['campanas_activas'][0]['pct']);
         $this->assertFalse($data['charts']['estados_donaciones']['demo']);
-        $this->assertSame(['Recibida'], array_values(array_filter(
+        $this->assertSame(['Verificada', 'Recibida'], array_values(array_filter(
             $data['charts']['estados_donaciones']['labels'],
             fn (string $label, int $index): bool => $data['charts']['estados_donaciones']['data'][$index] > 0,
             ARRAY_FILTER_USE_BOTH
         )));
         $this->assertTrue($data['charts']['roles']['demo']);
+
+        $vista = app(DashboardController::class)->index();
+        $this->assertSame(20.0, $vista->getData()['totalDonado']);
+        $this->assertSame(145.5, $vista->getData()['articulosPorMes'][(int) now()->format('n') - 1]);
+        $this->assertSame(['Cobijas'], $vista->getData()['productosLabels']);
+        $this->assertSame([145.5], $vista->getData()['productosData']);
     }
 
     public function test_private_backup_round_trips_isolated_database_and_rejects_unexpected_zip_entries(): void
@@ -141,9 +182,9 @@ class PhaseThreeModulesTest extends TestCase
         }
     }
 
-    public function test_registration_creates_inactive_volunteer_and_recovery_does_not_disclose_token(): void
+    public function test_registration_creates_pending_volunteer_and_recovery_does_not_disclose_token(): void
     {
-        DB::table('roles')->insert(['id_rol' => 1, 'nombre' => 'Voluntario', 'activo' => 1]);
+        DB::table('roles')->insert(['id_rol' => 1, 'nombre' => 'Voluntario / Practicante', 'slug' => 'voluntario', 'activo' => 1]);
         $controller = app(AuthController::class);
         $controller->register(Request::create('/registro', 'POST', [
             'nombre' => 'Sofía',
@@ -151,14 +192,25 @@ class PhaseThreeModulesTest extends TestCase
             'email' => 'SOFIA@example.test',
             'password' => 'ClaveSegura9',
             'password_confirm' => 'ClaveSegura9',
+            'fecha_nacimiento' => '2000-05-10',
+            'telefono_contacto' => '2221234567',
+            'zona_asignada' => 'san_martin',
         ]));
 
         $this->assertDatabaseHas('usuarios', [
             'email' => 'sofia@example.test',
             'id_rol' => 1,
-            'activo' => 0,
+            'estatus' => 'PENDIENTE',
         ]);
         $userId = (int) DB::table('usuarios')->where('email', 'sofia@example.test')->value('id_usuario');
+        $this->assertDatabaseHas('voluntarios', [
+            'id_usuario' => $userId,
+            'fecha_nacimiento' => '2000-05-10',
+            'telefono_contacto' => '2221234567',
+            'zona_asignada' => 'san_martin',
+            'activo' => 0,
+            'fecha_ingreso' => null,
+        ]);
         $recoveryRequest = Request::create('/recuperar-password', 'POST', ['email' => 'sofia@example.test']);
         $recoveryRequest->setLaravelSession(app('session.store'));
         $recoveryResponse = $controller->solicitarRecuperacion($recoveryRequest);
@@ -172,6 +224,7 @@ class PhaseThreeModulesTest extends TestCase
         Schema::create('roles', function ($table): void {
             $table->increments('id_rol');
             $table->string('nombre');
+            $table->string('slug')->unique();
             $table->boolean('activo')->default(true);
         });
         Schema::create('usuarios', function ($table): void {
@@ -181,7 +234,8 @@ class PhaseThreeModulesTest extends TestCase
             $table->string('apellido');
             $table->string('email')->unique();
             $table->string('contrasena_hash');
-            $table->boolean('activo')->default(false);
+            $table->string('estatus')->default('PENDIENTE');
+            $table->string('sede')->nullable();
             $table->integer('intentos_fallidos')->default(0);
             $table->dateTime('created_at')->nullable();
         });
@@ -262,23 +316,28 @@ class PhaseThreeModulesTest extends TestCase
             $table->increments('id_campana');
             $table->string('nombre');
             $table->text('descripcion')->nullable();
+            $table->string('tipo_meta')->default('especie');
             $table->date('fecha_inicio');
             $table->date('fecha_cierre');
             $table->string('estado');
-            $table->decimal('meta_economica', 12, 2);
+            $table->decimal('meta_cantidad', 12, 2);
+        });
+        Schema::create('tipos_bien', function ($table): void {
+            $table->increments('id_tipo_bien');
+            $table->string('nombre');
+            $table->string('unidad_medida');
+            $table->boolean('activo')->default(true);
         });
         Schema::create('donaciones', function ($table): void {
             $table->increments('id_donacion');
             $table->string('estado');
             $table->date('fecha_recepcion')->nullable();
             $table->unsignedInteger('id_campana')->nullable();
-        });
-        Schema::create('donaciones_economicas', function ($table): void {
-            $table->unsignedInteger('id_donacion')->primary();
-            $table->decimal('monto', 12, 2);
+            $table->timestamp('created_at')->nullable();
         });
         Schema::create('donaciones_especie', function ($table): void {
             $table->unsignedInteger('id_donacion')->primary();
+            $table->unsignedInteger('id_tipo_bien');
             $table->decimal('cantidad', 12, 2);
         });
         Schema::create('inventario', function ($table): void {
@@ -287,10 +346,18 @@ class PhaseThreeModulesTest extends TestCase
         Schema::create('entregas', function ($table): void {
             $table->increments('id_entrega');
             $table->string('estado');
+            $table->dateTime('fecha_entrega')->nullable();
         });
         Schema::create('voluntarios', function ($table): void {
             $table->increments('id_voluntario');
+            $table->unsignedInteger('id_usuario')->nullable()->unique();
+            $table->string('telefono_contacto', 20)->nullable();
+            $table->date('fecha_nacimiento')->nullable();
+            $table->string('zona_asignada')->nullable();
+            $table->string('disponibilidad')->nullable();
             $table->boolean('activo')->default(true);
+            $table->date('fecha_ingreso')->nullable();
+            $table->dateTime('created_at')->nullable();
         });
     }
 }

@@ -44,7 +44,7 @@
               <th>ID</th>
               <th>Nombre</th>
               <th>Tipo meta</th>
-              <th>Meta económica</th>
+              <th>Meta de acopio</th>
               <th>Inicio</th>
               <th>Cierre</th>
               <th>Estado</th>
@@ -73,7 +73,7 @@
                 <td>#C{{ str_pad((string) $campana->id_campana, 3, '0', STR_PAD_LEFT) }}</td>
                 <td>{{ $campana->nombre }}</td>
                 <td>{{ ucfirst($campana->tipo_meta) }}</td>
-                <td>{{ number_format((float) $campana->meta_economica, 2) }}</td>
+                <td>{{ number_format((float) $campana->meta_cantidad, 2) }}</td>
                 <td>{{ $campana->fecha_inicio->format('Y-m-d') }}</td>
                 <td>{{ $campana->fecha_cierre->format('Y-m-d') }}</td>
                 <td><span class="badge {{ $badgeEstado }}">{{ ucfirst($campana->estado) }}</span></td>
@@ -117,7 +117,7 @@
               <th>ID</th>
               <th>Campaña</th>
               <th>Avance %</th>
-              <th>Monto recaudado</th>
+              <th>Cantidad acopiada</th>
               <th>Descripción</th>
               <th>Reportado por</th>
               <th>Fecha</th>
@@ -129,7 +129,7 @@
                 <td>#AV{{ str_pad((string) $avance->id_avance, 3, '0', STR_PAD_LEFT) }}</td>
                 <td>{{ $avance->nombre_campana ?? '—' }}</td>
                 <td><b style="color:var(--accent);">{{ number_format((float) $avance->porcentaje_avance, 2) }}%</b></td>
-                <td>{{ number_format((float) $avance->monto_recaudado, 2) }}</td>
+                <td>{{ number_format((float) $avance->cantidad_acopiada, 2) }}</td>
                 <td>{{ $avance->descripcion ?? '—' }}</td>
                 <td>{{ $avance->reportado_por ?: '—' }}</td>
                 <td>{{ \Illuminate\Support\Carbon::parse($avance->fecha_registro)->format('Y-m-d') }}</td>
