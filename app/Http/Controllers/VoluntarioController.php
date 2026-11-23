@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\AsignacionVoluntarioRequest;
 use App\Services\PuntosService;
 use App\Services\VoluntarioWorkflowService;
+use App\Services\TarjetaCumpleanosService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,20 @@ use Illuminate\View\View;
 
 class VoluntarioController extends Controller
 {
+    public function tarjeta(Request $request, int $voluntario, TarjetaCumpleanosService $tarjetas)
+    {
+        $perfil = DB::table('voluntarios')->where('id_voluntario', $voluntario)->first();
+        abort_if(! $perfil, 404);
+        $zonasVisibles = $request->user()->zonasVisibles();
+        if ($zonasVisibles !== null) {
+            abort_unless(in_array($perfil->zona_asignada, $zonasVisibles, true), 403);
+        }
+
+        return response($tarjetas->generar($voluntario), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="tarjeta-cumpleanos-'.$voluntario.'.pdf"',
+        ]);
+    }
     public function index(Request $request): View
     {
         $zonasVisibles = $request->user()->zonasVisibles();

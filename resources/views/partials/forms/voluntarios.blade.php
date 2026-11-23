@@ -1,7 +1,7 @@
-<div style="display:flex;width:100%;"><div class="main">
+<div class="main">
   @include('partials.topbar')
   <div class="content" style="padding:24px;">
-    <div class="card" style="max-width:760px;">
+    <div class="card" style="max-width:760px;margin:0 auto;">
       <div class="card-header"><h3>{{ ($modoEdicion ?? false) ? 'Editar voluntario' : 'Alta de voluntario' }}</h3></div>
       <div class="card-body" style="padding:24px;">
         <form method="POST" action="{{ ($modoEdicion ?? false) ? route('voluntarios.update', $voluntario->id_voluntario) : route('voluntarios.store') }}" data-validate="true">
@@ -65,4 +65,4 @@
       </div>
     </div>
   </div>
-</div></div>
+</div>

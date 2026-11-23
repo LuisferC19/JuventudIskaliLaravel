@@ -17,6 +17,7 @@ class Reconocimiento extends Model
         'id_campana',
         'tipo',
         'descripcion',
+        'folio',
         'archivo_pdf_url',
         'fecha_emision',
         'id_usuario_emisor',

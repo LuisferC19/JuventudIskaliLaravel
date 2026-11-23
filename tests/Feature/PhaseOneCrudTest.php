@@ -446,7 +446,7 @@ class PhaseOneCrudTest extends TestCase
             'reconocimientos' => ['id_usuario_emisor'],
             'notificaciones' => ['id_usuario'],
             'historial_accesos' => ['id_usuario'],
-            'recuperacion_contrasenas' => ['id_usuario'],
+            'recuperacion_contrasena' => ['id_usuario'],
             'asignaciones_voluntario' => ['id_voluntario', 'id_entrega'],
             'asistencia_voluntarios' => ['id_voluntario', 'presente'],
             'voluntarios' => ['id_voluntario', 'id_usuario', 'activo'],

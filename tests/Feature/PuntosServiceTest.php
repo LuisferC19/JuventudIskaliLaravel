@@ -29,7 +29,34 @@ class PuntosServiceTest extends TestCase
         });
         Schema::create('voluntarios', function (Blueprint $table): void {
             $table->increments('id_voluntario');
+            $table->unsignedInteger('id_usuario')->nullable();
+            $table->string('zona_asignada')->default('san_martin');
             $table->boolean('activo')->default(true);
+        });
+        Schema::create('usuarios', function (Blueprint $table): void {
+            $table->increments('id_usuario');
+            $table->string('nombre')->default('Voluntario');
+            $table->string('apellido')->default('Prueba');
+        });
+        Schema::create('campamentos', function (Blueprint $table): void {
+            $table->increments('id_campamento');
+            $table->string('nombre');
+            $table->date('fecha_inicio');
+            $table->string('zona');
+            $table->unsignedInteger('umbral_puntos');
+            $table->string('estado')->default('abierto');
+        });
+        Schema::create('penalizaciones_asistencia', function (Blueprint $table): void {
+            $table->increments('id_penalizacion');
+            $table->unsignedInteger('id_voluntario');
+            $table->unsignedInteger('id_actividad');
+            $table->string('tipo');
+            $table->unsignedInteger('puntos_descontados');
+            $table->string('motivo')->nullable();
+            $table->unsignedInteger('id_usuario_registra')->nullable();
+            $table->dateTime('fecha');
+            $table->boolean('anulada')->default(false);
+            $table->unique(['id_voluntario', 'id_actividad']);
         });
         Schema::create('asistencia_voluntarios', function (Blueprint $table): void {
             $table->increments('id_asistencia');
@@ -205,7 +232,6 @@ class PuntosServiceTest extends TestCase
 
     public function test_campamento_qualification_respects_threshold_and_block(): void
     {
-        config(['iskali.umbral_campamento' => 100]);
         DB::table('bolsa_voluntario')->insert([
             'id_voluntario' => 2,
             'puntos_canjeables' => 0,
@@ -214,10 +240,114 @@ class PuntosServiceTest extends TestCase
         ]);
         $puntos = app(PuntosService::class);
 
-        $this->assertTrue($puntos->calificaCampamento(2));
+        $this->assertTrue($puntos->calificaCampamento(2, 100));
+        $this->assertFalse($puntos->calificaCampamento(2, 101));
         DB::table('bolsa_voluntario')->where('id_voluntario', 2)->update(['campamento_bloqueado' => true]);
-        $this->assertFalse($puntos->calificaCampamento(2));
-        $this->assertFalse($puntos->calificaCampamento(99));
+        $this->assertFalse($puntos->calificaCampamento(2, 100));
+        $this->assertFalse($puntos->calificaCampamento(99, 100));
+    }
+
+    public function test_campamento_eligibility_uses_each_threshold_and_zone(): void
+    {
+        DB::table('voluntarios')->insert(['id_voluntario' => 2, 'id_usuario' => 22, 'zona_asignada' => 'san_martin']);
+        DB::table('usuarios')->insert(['id_usuario' => 22, 'nombre' => 'Ana', 'apellido' => 'Prueba']);
+        DB::table('bolsa_voluntario')->insert([
+            'id_voluntario' => 2,
+            'puntos_canjeables' => 0,
+            'puntos_campamento' => 115,
+            'campamento_bloqueado' => false,
+        ]);
+        DB::table('campamentos')->insert([
+            ['id_campamento' => 1, 'nombre' => 'San Martín', 'fecha_inicio' => '2027-01-01', 'zona' => 'san_martin', 'umbral_puntos' => 100, 'estado' => 'abierto'],
+            ['id_campamento' => 2, 'nombre' => 'Tlaxcala', 'fecha_inicio' => '2027-01-01', 'zona' => 'tlaxcala', 'umbral_puntos' => 100, 'estado' => 'abierto'],
+            ['id_campamento' => 3, 'nombre' => 'Umbral alto', 'fecha_inicio' => '2027-01-01', 'zona' => 'san_martin', 'umbral_puntos' => 150, 'estado' => 'abierto'],
+            ['id_campamento' => 4, 'nombre' => 'Cerrado', 'fecha_inicio' => '2027-01-01', 'zona' => 'san_martin', 'umbral_puntos' => 100, 'estado' => 'cerrado'],
+        ]);
+
+        $puntos = app(PuntosService::class);
+
+        $this->assertSame([1], $puntos->campamentosParaVoluntario(2)->pluck('id_campamento')->all());
+        $this->assertSame([2], $puntos->voluntariosQueCalifican(1)->pluck('id_voluntario')->all());
+        $this->assertCount(0, $puntos->voluntariosQueCalifican(3));
+    }
+
+    public function test_penalties_cap_each_deduction_and_reversal_restores_exact_movement(): void
+    {
+        config([
+            'iskali.penalizacion_retardo' => 2,
+            'iskali.penalizacion_inasistencia' => 5,
+        ]);
+        DB::table('voluntarios')->insert(['id_voluntario' => 2]);
+        DB::table('actividades')->insert([
+            ['id_actividad' => 3, 'puntos' => 10],
+            ['id_actividad' => 4, 'puntos' => 10],
+        ]);
+        DB::table('bolsa_voluntario')->insert([
+            'id_voluntario' => 2,
+            'puntos_canjeables' => 6,
+            'puntos_campamento' => 7,
+            'faltas_injustificadas' => 0,
+            'campamento_bloqueado' => false,
+        ]);
+        $puntos = app(PuntosService::class);
+
+        $idPenalizacion = $puntos->penalizar(2, 3, 'inasistencia_injustificada', 'Ausencia', 9);
+        $this->assertDatabaseHas('penalizaciones_asistencia', [
+            'id_penalizacion' => $idPenalizacion,
+            'puntos_descontados' => 5,
+            'anulada' => false,
+        ]);
+        $this->assertDatabaseHas('movimientos_puntos', [
+            'id_voluntario' => 2,
+            'id_actividad' => 3,
+            'tipo' => 'penalizacion',
+            'puntos_canjeables' => -5,
+            'puntos_campamento' => -5,
+        ]);
+        $this->assertDatabaseHas('bolsa_voluntario', [
+            'id_voluntario' => 2,
+            'puntos_canjeables' => 1,
+            'puntos_campamento' => 2,
+            'faltas_injustificadas' => 1,
+            'campamento_bloqueado' => false,
+        ]);
+
+        $segundaPenalizacion = $puntos->penalizar(2, 4, 'inasistencia_injustificada', null, 9);
+        $this->assertDatabaseHas('bolsa_voluntario', [
+            'id_voluntario' => 2,
+            'puntos_canjeables' => 0,
+            'puntos_campamento' => 0,
+            'faltas_injustificadas' => 2,
+            'campamento_bloqueado' => true,
+        ]);
+
+        $puntos->anularPenalizacion($segundaPenalizacion, 9);
+        $this->assertDatabaseHas('penalizaciones_asistencia', ['id_penalizacion' => $segundaPenalizacion, 'anulada' => true]);
+        $this->assertDatabaseHas('bolsa_voluntario', [
+            'id_voluntario' => 2,
+            'puntos_canjeables' => 1,
+            'puntos_campamento' => 2,
+            'faltas_injustificadas' => 1,
+            'campamento_bloqueado' => false,
+        ]);
+        $this->assertDatabaseHas('movimientos_puntos', [
+            'id_voluntario' => 2,
+            'tipo' => 'ajuste',
+            'puntos_canjeables' => 1,
+            'puntos_campamento' => 2,
+            'motivo' => 'Anulación de penalización',
+        ]);
+    }
+
+    public function test_penalty_cannot_be_recorded_twice_for_the_same_volunteer_activity(): void
+    {
+        DB::table('voluntarios')->insert(['id_voluntario' => 2]);
+        DB::table('actividades')->insert(['id_actividad' => 3, 'puntos' => 10]);
+        $puntos = app(PuntosService::class);
+        $puntos->penalizar(2, 3, 'retardo', null, null);
+
+        $this->expectException(DomainException::class);
+        $puntos->penalizar(2, 3, 'inasistencia_injustificada', null, null);
     }
 
     public function test_manual_attendance_awards_points_only_on_the_first_presence(): void

@@ -9,10 +9,6 @@
     @if (session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
     @if ($errors->any())<div class="alert alert-danger"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 
-<div style="display:flex;width:100%;">
-  <div class="main">
-    @include('partials.topbar')
-    <div class="content">
       <div class="card">
         <div class="card-header">
           <h3>Voluntarios</h3>
@@ -38,6 +34,9 @@
                   <td>{{ $voluntario->fecha_nacimiento ? \Illuminate\Support\Carbon::parse($voluntario->fecha_nacimiento)->format('d/m/Y') : '—' }}</td>
                   <td><span class="badge {{ $voluntario->activo ? 'badge-green' : 'badge-gray' }}">{{ $voluntario->activo ? 'Sí' : 'No' }}</span></td>
                   <td>
+                    @can('permiso', ['voluntarios', 'ver'])
+                      <a class="btn btn-secondary btn-sm" href="{{ route('voluntarios.tarjeta', $voluntario->id_voluntario) }}" target="_blank">Tarjeta</a>
+                    @endcan
                     @can('permiso', ['voluntarios', 'editar'])
                       <a class="btn btn-secondary btn-sm" href="{{ route('voluntarios.edit', $voluntario->id_voluntario) }}">Editar</a>
                     @endcan
@@ -96,7 +95,6 @@
           </table>
         </div>
       </div>
-    </div>
   </div>
 </div>
 

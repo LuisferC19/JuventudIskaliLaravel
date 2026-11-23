@@ -14,7 +14,7 @@
   @endif
 </head>
 <body class="@yield('body-class')">
-  @if (Auth::check() && !request()->routeIs('landing', 'login', 'registro', 'recuperar_password'))
+  @if (Auth::check() && !request()->routeIs('landing', 'login', 'registro', 'recuperar_password', 'portal.donador'))
     @include('partials.sidebar')
   @endif
   @yield('content')

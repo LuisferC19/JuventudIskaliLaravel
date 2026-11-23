@@ -124,6 +124,10 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
+        if (! $usuario->tienePermiso('dashboard.view') && $usuario->tienePermiso('donations.view_own')) {
+            return redirect()->route('portal.donador');
+        }
+
         return redirect()->intended(route('dashboard'));
     }
 

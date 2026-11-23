@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
 use DomainException;
+use Illuminate\Support\Collection;
 
 class PuntosService
 {
@@ -196,7 +197,7 @@ class PuntosService
         });
     }
 
-    public function calificaCampamento(int $idVoluntario): bool
+    public function calificaCampamento(int $idVoluntario, int $umbral): bool
     {
         $bolsa = DB::table('bolsa_voluntario')
             ->where('id_voluntario', $idVoluntario)
@@ -204,6 +205,205 @@ class PuntosService
 
         return $bolsa !== null
             && ! (bool) $bolsa->campamento_bloqueado
-            && $bolsa->puntos_campamento >= (int) config('iskali.umbral_campamento');
+            && (int) $bolsa->puntos_campamento >= $umbral;
+    }
+
+    public function campamentosParaVoluntario(int $idVoluntario): Collection
+    {
+        $voluntario = DB::table('voluntarios')
+            ->where('id_voluntario', $idVoluntario)
+            ->where('activo', true)
+            ->first();
+        if (! $voluntario) {
+            return collect();
+        }
+
+        return DB::table('campamentos')
+            ->where('estado', 'abierto')
+            ->where(function ($query) use ($voluntario): void {
+                $query->where('zona', 'ambas')
+                    ->orWhere('zona', $voluntario->zona_asignada);
+                if ($voluntario->zona_asignada === 'ambas') {
+                    $query->orWhereIn('zona', ['san_martin', 'tlaxcala']);
+                }
+            })
+            ->orderBy('fecha_inicio')
+            ->get()
+            ->filter(fn ($campamento): bool => $this->calificaCampamento(
+                $idVoluntario,
+                (int) $campamento->umbral_puntos
+            ))
+            ->values();
+    }
+
+    public function voluntariosQueCalifican(int $idCampamento): Collection
+    {
+        $campamento = DB::table('campamentos')
+            ->where('id_campamento', $idCampamento)
+            ->first();
+        if (! $campamento) {
+            throw new DomainException('El campamento indicado no existe.');
+        }
+
+        $consulta = DB::table('voluntarios as v')
+            ->join('usuarios as u', 'u.id_usuario', '=', 'v.id_usuario')
+            ->join('bolsa_voluntario as b', 'b.id_voluntario', '=', 'v.id_voluntario')
+            ->where('v.activo', true)
+            ->where('b.campamento_bloqueado', false)
+            ->where('b.puntos_campamento', '>=', $campamento->umbral_puntos);
+        if ($campamento->zona !== 'ambas') {
+            $consulta->where(function ($query) use ($campamento): void {
+                $query->where('v.zona_asignada', $campamento->zona)
+                    ->orWhere('v.zona_asignada', 'ambas');
+            });
+        }
+
+        return $consulta->orderBy('u.nombre')
+            ->orderBy('u.apellido')
+            ->get([
+                'v.id_voluntario',
+                'v.zona_asignada',
+                'u.nombre',
+                'u.apellido',
+                'b.puntos_canjeables',
+                'b.puntos_campamento',
+                'b.faltas_injustificadas',
+                'b.campamento_bloqueado',
+            ]);
+    }
+
+    public function penalizar(
+        int $idVoluntario,
+        int $idActividad,
+        string $tipo,
+        ?string $motivo,
+        ?int $idUsuario
+    ): int {
+        if (! in_array($tipo, ['retardo', 'inasistencia_injustificada'], true)) {
+            throw new DomainException('El tipo de penalización no es válido.');
+        }
+
+        return DB::transaction(function () use ($idVoluntario, $idActividad, $tipo, $motivo, $idUsuario): int {
+            if (! DB::table('voluntarios')->where('id_voluntario', $idVoluntario)->exists()) {
+                throw new DomainException('El voluntario indicado no existe.');
+            }
+            if (! DB::table('actividades')->where('id_actividad', $idActividad)->exists()) {
+                throw new DomainException('La actividad indicada no existe.');
+            }
+
+            $bolsa = $this->bolsaDe($idVoluntario);
+            $yaPenalizado = DB::table('penalizaciones_asistencia')
+                ->where('id_voluntario', $idVoluntario)
+                ->where('id_actividad', $idActividad)
+                ->exists();
+            if ($yaPenalizado) {
+                throw new DomainException('Este voluntario ya tiene una penalización registrada para esa actividad.');
+            }
+
+            $puntosDescontados = (int) config(
+                $tipo === 'retardo' ? 'iskali.penalizacion_retardo' : 'iskali.penalizacion_inasistencia'
+            );
+            $descuentoCanjeables = min((int) $bolsa->puntos_canjeables, $puntosDescontados);
+            $descuentoCampamento = min((int) $bolsa->puntos_campamento, $puntosDescontados);
+            $faltas = (int) $bolsa->faltas_injustificadas;
+            if ($tipo === 'inasistencia_injustificada') {
+                $faltas++;
+            }
+
+            DB::table('bolsa_voluntario')
+                ->where('id_bolsa', $bolsa->id_bolsa)
+                ->update([
+                    'puntos_canjeables' => (int) $bolsa->puntos_canjeables - $descuentoCanjeables,
+                    'puntos_campamento' => (int) $bolsa->puntos_campamento - $descuentoCampamento,
+                    'faltas_injustificadas' => $faltas,
+                    'campamento_bloqueado' => $faltas >= 2,
+                    'updated_at' => now(),
+                ]);
+
+            $idPenalizacion = (int) DB::table('penalizaciones_asistencia')->insertGetId([
+                'id_voluntario' => $idVoluntario,
+                'id_actividad' => $idActividad,
+                'tipo' => $tipo,
+                'puntos_descontados' => $puntosDescontados,
+                'motivo' => $motivo,
+                'id_usuario_registra' => $idUsuario,
+                'fecha' => now(),
+                'anulada' => false,
+            ], 'id_penalizacion');
+            DB::table('movimientos_puntos')->insert([
+                'id_voluntario' => $idVoluntario,
+                'tipo' => 'penalizacion',
+                'puntos_canjeables' => -$descuentoCanjeables,
+                'puntos_campamento' => -$descuentoCampamento,
+                'id_actividad' => $idActividad,
+                'motivo' => 'Penalización: '.$tipo,
+                'id_usuario' => $idUsuario,
+                'fecha' => now(),
+            ]);
+
+            return $idPenalizacion;
+        });
+    }
+
+    public function anularPenalizacion(int $idPenalizacion, ?int $idUsuario): void
+    {
+        DB::transaction(function () use ($idPenalizacion, $idUsuario): void {
+            $penalizacion = DB::table('penalizaciones_asistencia')
+                ->where('id_penalizacion', $idPenalizacion)
+                ->lockForUpdate()
+                ->first();
+            if (! $penalizacion) {
+                throw new DomainException('La penalización indicada no existe.');
+            }
+            if ((bool) $penalizacion->anulada) {
+                throw new DomainException('La penalización ya fue anulada.');
+            }
+
+            $movimiento = DB::table('movimientos_puntos')
+                ->where('id_voluntario', $penalizacion->id_voluntario)
+                ->where('id_actividad', $penalizacion->id_actividad)
+                ->where('tipo', 'penalizacion')
+                ->lockForUpdate()
+                ->first();
+            if (! $movimiento) {
+                throw new DomainException('No se encontró el movimiento original de la penalización.');
+            }
+            if ((int) $movimiento->puntos_canjeables > 0 || (int) $movimiento->puntos_campamento > 0) {
+                throw new DomainException('El movimiento original de la penalización no contiene descuentos válidos.');
+            }
+
+            $bolsa = $this->bolsaDe((int) $penalizacion->id_voluntario);
+            $faltas = (int) $bolsa->faltas_injustificadas;
+            if ($penalizacion->tipo === 'inasistencia_injustificada') {
+                $faltas = max(0, $faltas - 1);
+            }
+            $actualizarBloqueo = $penalizacion->tipo === 'inasistencia_injustificada'
+                ? $faltas >= 2
+                : (bool) $bolsa->campamento_bloqueado;
+            $devolucionCanjeables = -(int) $movimiento->puntos_canjeables;
+            $devolucionCampamento = -(int) $movimiento->puntos_campamento;
+
+            DB::table('bolsa_voluntario')
+                ->where('id_bolsa', $bolsa->id_bolsa)
+                ->update([
+                    'puntos_canjeables' => (int) $bolsa->puntos_canjeables + $devolucionCanjeables,
+                    'puntos_campamento' => (int) $bolsa->puntos_campamento + $devolucionCampamento,
+                    'faltas_injustificadas' => $faltas,
+                    'campamento_bloqueado' => $actualizarBloqueo,
+                    'updated_at' => now(),
+                ]);
+            DB::table('penalizaciones_asistencia')
+                ->where('id_penalizacion', $idPenalizacion)
+                ->update(['anulada' => true]);
+            DB::table('movimientos_puntos')->insert([
+                'id_voluntario' => $penalizacion->id_voluntario,
+                'tipo' => 'ajuste',
+                'puntos_canjeables' => $devolucionCanjeables,
+                'puntos_campamento' => $devolucionCampamento,
+                'motivo' => 'Anulación de penalización',
+                'id_usuario' => $idUsuario,
+                'fecha' => now(),
+            ]);
+        });
     }
 }

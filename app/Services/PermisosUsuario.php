@@ -44,6 +44,10 @@ class PermisosUsuario
             'editar' => ['donors.manage'],
             'eliminar' => ['donors.manage'],
         ],
+        'reconocimientos' => [
+            'ver' => ['donors.manage', 'rewards.manage', 'certificates.download'],
+            'crear' => ['donors.manage', 'rewards.manage'],
+        ],
         'beneficiarios' => [
             'ver' => ['beneficiaries.manage'],
             'crear' => ['beneficiaries.manage'],
@@ -61,7 +65,7 @@ class PermisosUsuario
             'editar' => ['inventory.adjust'],
         ],
         'gamificacion' => [
-            'ver' => ['donors.manage', 'rewards.manage', 'penalties.manage'],
+            'ver' => ['donors.manage', 'rewards.manage', 'rewards.deliver', 'penalties.manage', 'camps.manage'],
             'crear' => ['rewards.manage'],
             'editar' => ['rewards.manage'],
             'eliminar' => ['rewards.manage'],

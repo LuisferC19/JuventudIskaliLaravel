@@ -951,3 +951,80 @@ INSERT INTO movimientos_puntos (id_voluntario, tipo, puntos_canjeables, puntos_c
  (1,'canje',-20,0,NULL,1,'Canje: Playera Iskali',3),
  (1,'canje',-35,0,NULL,2,'Canje: Termo Iskali',3),
  (2,'asistencia',10,10,1,NULL,'Asistencia a actividad',7);
+
+ USE iskali;
+ALTER TABLE inventario
+  ADD COLUMN cantidad_disponible DECIMAL(12,2)
+  GENERATED ALWAYS AS (cantidad_total_recibida - cantidad_total_entregada) STORED
+  AFTER cantidad_total_entregada;
+
+  USE iskali;
+SET NAMES utf8mb4;
+
+-- ===== PERMISOS NUEVOS =====
+INSERT INTO permisos (slug, modulo, descripcion) VALUES
+ ('camps.manage','Campamentos','Crear campamentos y consultar voluntarios que califican'),
+ ('rewards.deliver','Gamificacion','Marcar premios como entregados (almacen de merch)');
+
+INSERT INTO rol_permiso (id_rol, id_permiso)
+ SELECT r.id_rol, p.id_permiso FROM roles r JOIN permisos p ON p.slug = 'camps.manage'
+ WHERE r.slug IN ('superadmin','directiva');
+INSERT INTO rol_permiso (id_rol, id_permiso)
+ SELECT r.id_rol, p.id_permiso FROM roles r JOIN permisos p ON p.slug = 'rewards.deliver'
+ WHERE r.slug IN ('superadmin','directiva','tesoreria');
+
+-- ===== CAMPAMENTOS (umbral definido por quien lo crea: 50 a 200 puntos) =====
+CREATE TABLE campamentos (
+  id_campamento INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(150) NOT NULL,
+  descripcion TEXT NULL,
+  fecha_inicio DATE NOT NULL,
+  fecha_fin DATE NULL,
+  zona VARCHAR(20) NOT NULL DEFAULT 'ambas' COMMENT 'san_martin | tlaxcala | ambas',
+  cupo INT UNSIGNED NULL,
+  umbral_puntos SMALLINT UNSIGNED NOT NULL DEFAULT 100 COMMENT 'Puntos de Bolsa 2 requeridos (50 a 200)',
+  estado VARCHAR(20) NOT NULL DEFAULT 'abierto' COMMENT 'abierto | cerrado | cancelado',
+  id_usuario_creador INT UNSIGNED NULL,
+  created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT chk_campamentos_umbral CHECK (umbral_puntos BETWEEN 50 AND 200),
+  INDEX idx_campamentos_estado (estado),
+  CONSTRAINT fk_camp_usuario FOREIGN KEY (id_usuario_creador) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ===== PENALIZACIONES (RF011C) =====
+CREATE TABLE penalizaciones_asistencia (
+  id_penalizacion INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  id_voluntario INT UNSIGNED NOT NULL,
+  id_actividad INT UNSIGNED NOT NULL,
+  tipo VARCHAR(30) NOT NULL COMMENT 'retardo | inasistencia_injustificada',
+  puntos_descontados INT UNSIGNED NOT NULL DEFAULT 0,
+  motivo VARCHAR(255) NULL,
+  id_usuario_registra INT UNSIGNED NULL,
+  fecha DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  anulada TINYINT(1) NOT NULL DEFAULT 0,
+  UNIQUE KEY uq_pen_vol_act (id_voluntario, id_actividad),
+  CONSTRAINT fk_pen_voluntario FOREIGN KEY (id_voluntario) REFERENCES voluntarios(id_voluntario) ON DELETE CASCADE,
+  CONSTRAINT fk_pen_actividad FOREIGN KEY (id_actividad) REFERENCES actividades(id_actividad) ON DELETE CASCADE,
+  CONSTRAINT fk_pen_usuario FOREIGN KEY (id_usuario_registra) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ===== DATOS DE EJEMPLO (2 por tabla) =====
+INSERT INTO campamentos (id_campamento, nombre, descripcion, fecha_inicio, fecha_fin, zona, cupo, umbral_puntos, estado, id_usuario_creador) VALUES
+ (1,'Campamento formativo San Martin','Campamento de formacion y convivencia para voluntarios','2027-01-24','2027-01-26','san_martin',30,100,'abierto',3),
+ (2,'Convivencia formativa Tlaxcala','Convivencia de liderazgo y trabajo en equipo','2027-02-14','2027-02-15','tlaxcala',25,150,'abierto',3);
+
+INSERT INTO penalizaciones_asistencia (id_penalizacion, id_voluntario, id_actividad, tipo, puntos_descontados, motivo, id_usuario_registra) VALUES
+ (1,2,1,'retardo',2,'Llego 30 minutos tarde',7),
+ (2,1,2,'inasistencia_injustificada',5,'No asistio y no aviso',8);
+
+-- Ajustar saldos y libro de movimientos a esas penalizaciones
+UPDATE bolsa_voluntario SET puntos_canjeables = 0, puntos_campamento = 115, faltas_injustificadas = 1 WHERE id_voluntario = 1;
+UPDATE bolsa_voluntario SET puntos_canjeables = 8, puntos_campamento = 8 WHERE id_voluntario = 2;
+INSERT INTO movimientos_puntos (id_voluntario, tipo, puntos_canjeables, puntos_campamento, id_actividad, motivo, id_usuario) VALUES
+ (2,'penalizacion',-2,-2,1,'Penalizacion: retardo',7),
+ (1,'penalizacion',-5,-5,2,'Penalizacion: inasistencia injustificada',8);
+
+ USE iskali;
+INSERT INTO reconocimientos (id_donador, id_campana, tipo, descripcion, folio, id_usuario_emisor, otorgado_por) VALUES
+ (1,1,'diploma','Diploma de agradecimiento por tu donacion de alimentos','ISK-2026-0003',3,'Directiva Juventud Iskali'),
+ (2,2,'diploma','Diploma de agradecimiento por tu apoyo con ropa','ISK-2026-0004',3,'Directiva Juventud Iskali');

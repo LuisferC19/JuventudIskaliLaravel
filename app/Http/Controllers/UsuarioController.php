@@ -144,7 +144,7 @@ class UsuarioController extends Controller
 
                 DB::table('notificaciones')->where('id_usuario', $idUsuario)->delete();
                 DB::table('historial_accesos')->where('id_usuario', $idUsuario)->delete();
-                DB::table('recuperacion_contrasenas')->where('id_usuario', $idUsuario)->delete();
+                DB::table('recuperacion_contrasena')->where('id_usuario', $idUsuario)->delete();
                 $usuario->delete();
 
                 return false;
